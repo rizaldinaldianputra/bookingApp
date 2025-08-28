@@ -18,7 +18,7 @@ const ProfileScreen = () => {
       <View style={styles.profileInfo}>
         <Image
           source={{
-            uri: 'https://images.unsplash.com/photo-1542903660-eed4c2c8430a?q=80&w=1950&auto=format&fit=crop',
+            uri: 'https://picsum.photos/200/300?random=1',
           }}
           style={styles.profileImage}
         />
