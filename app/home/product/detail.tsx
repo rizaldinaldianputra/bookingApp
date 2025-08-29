@@ -1,7 +1,19 @@
+import CustomButton from '@/components/ui/button';
+import { primaryColor } from '@/constants/Colors';
 import { AntDesign, Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React from 'react';
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import {
+  Image,
+  Modal,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { Calendar } from 'react-native-calendars';
 import MapView, { Marker } from 'react-native-maps';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -69,7 +81,21 @@ const reviews: Review[] = [
 
 const DetailApartmentScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
+  const [visible, setVisible] = useState(false);
+  const [showCheckIn, setShowCheckIn] = useState(false);
+  const [showCheckOut, setShowCheckOut] = useState(false);
+  const [checkIn, setCheckIn] = useState('');
+  const [checkOut, setCheckOut] = useState('');
 
+  const toggleCheckIn = () => {
+    setShowCheckIn(!showCheckIn);
+    setShowCheckOut(false);
+  };
+
+  const toggleCheckOut = () => {
+    setShowCheckOut(!showCheckOut);
+    setShowCheckIn(false);
+  };
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
@@ -184,26 +210,175 @@ const DetailApartmentScreen: React.FC = () => {
                 <Text style={styles.reviewerName}>{review.name}</Text>
                 <Text style={styles.reviewText}>{review.text}</Text>
               </View>
-              <Text style={styles.rating}>{review.rating} ⭐</Text>
+              <Text style={styles.rating}>{`${review.rating} ⭐`}</Text>
             </View>
           ))}
         </View>
       </ScrollView>
 
       {/* Floating Bottom Buttons */}
-      <View style={[styles.floatingButtons, { bottom: 20 + insets.bottom }]}>
-        <TouchableOpacity style={[styles.button, { backgroundColor: '#3498db' }]}>
-          <Text style={styles.buttonText}>Book Now</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, { backgroundColor: '#2ecc71' }]}>
-          <Text style={styles.buttonText}>Chat</Text>
-        </TouchableOpacity>
+      <View style={{ flex: 1 }}>
+        {/* Floating Buttons */}
+        <View style={[styles.floatingButtons, { bottom: insets.bottom }]}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={styles.cardPrice}>Rp.500.000/</Text>
+            <Text style={styles.cardMonth}>Bulan</Text>
+          </View>
+
+          <TouchableOpacity style={styles.button} onPress={() => setVisible(true)}>
+            <Text style={styles.buttonText}>Booking now</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Bottom Dialog */}
+        <Modal
+          visible={visible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setVisible(false)}
+        >
+          <View style={styles.overlay}>
+            <TouchableOpacity
+              style={{ flex: 1 }}
+              activeOpacity={1}
+              onPressOut={() => setVisible(false)}
+            />
+            <SafeAreaView style={styles.containerModal}>
+              <Text style={styles.titleContainer}>Booking</Text>
+
+              {/* Check In */}
+              <TouchableOpacity style={styles.dateButton} onPress={toggleCheckIn}>
+                <Feather name="calendar" size={20} color="black" />
+                <Text style={styles.dateText}>{checkIn ? checkIn : 'Check In'}</Text>
+              </TouchableOpacity>
+              {showCheckIn && (
+                <Calendar
+                  onDayPress={(day) => {
+                    setCheckIn(day.dateString);
+                    setShowCheckIn(false);
+                  }}
+                  markedDates={{
+                    [checkIn]: { selected: true, selectedColor: '#4CAF50' },
+                  }}
+                />
+              )}
+
+              {/* Check Out */}
+              <TouchableOpacity style={styles.dateButton} onPress={toggleCheckOut}>
+                <Feather name="calendar" size={20} color="black" />
+                <Text style={styles.dateText}>{checkOut ? checkOut : 'Check Out'}</Text>
+              </TouchableOpacity>
+              {showCheckOut && (
+                <Calendar
+                  onDayPress={(day) => {
+                    setCheckOut(day.dateString);
+                    setShowCheckOut(false);
+                  }}
+                  markedDates={{
+                    [checkOut]: { selected: true, selectedColor: '#4CAF50' },
+                  }}
+                />
+              )}
+
+              {/* Data Penghuni */}
+              <View style={styles.form}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Nama Lengkap"
+                  value="Muhammad Syahputra"
+                />
+                <TextInput style={styles.input} placeholder="Nomor HP" value="08222324xxx" />
+                <TextInput
+                  style={styles.input}
+                  placeholder="Email"
+                  value="muhammadsyahputra@gmail.com"
+                />
+              </View>
+
+              {/* Total */}
+              <Text style={styles.total}>Total: Rp5.000.000,-</Text>
+
+              {/* Konfirmasi */}
+              <CustomButton
+                onPress={() => router.replace('/home/payment/payment')}
+                title="Booking Now"
+              />
+            </SafeAreaView>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  containerModal: {
+    height: '70%',
+    padding: 20,
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20, // biar ada efek bottom sheet
+    borderTopRightRadius: 20,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  title: { fontSize: 20, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
+  dateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E6F7EF',
+    padding: 15,
+    borderRadius: 10,
+    marginTop: 10,
+  },
+  dateText: { marginLeft: 10, fontSize: 16 },
+  form: { marginTop: 20 },
+  input: {
+    backgroundColor: '#f2f2f2',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+  },
+  total: { fontSize: 18, fontWeight: 'bold', marginVertical: 20 },
+  confirmButton: {
+    backgroundColor: '#0B6E4F',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  confirmText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  bottomSheet: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  button: {
+    height: 54,
+    borderRadius: 40,
+
+    backgroundColor: primaryColor,
+    justifyContent: 'center',
+    alignItems: 'center',
+    opacity: 1,
+    paddingHorizontal: 24,
+  },
+  buttonText: {
+    width: 101,
+    height: 19,
+    fontFamily: 'Raleway',
+    fontSize: 16,
+    fontWeight: '600',
+    fontStyle: 'normal',
+    lineHeight: 16,
+    color: '#FFFFFF',
+  },
+
+  cardPrice: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
+  cardMonth: { fontSize: 10, fontWeight: 'bold', color: '#0f172a' },
+
   container: { flex: 1, backgroundColor: '#f5f5f5' },
   header: { height: 300 },
   mainImage: { width: '100%', height: '100%', resizeMode: 'cover' },
@@ -232,7 +407,7 @@ const styles = StyleSheet.create({
     borderRadius: 50,
   },
   infoContainer: { padding: 16 },
-  title: { fontSize: 22, fontWeight: 'bold' },
+  titleContainer: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginVertical: 10 },
   subtitle: { fontSize: 14, color: '#666' },
   section: { backgroundColor: '#fff', padding: 16, marginBottom: 10 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
@@ -271,25 +446,19 @@ const styles = StyleSheet.create({
   reviewText: { fontSize: 14, color: '#333', marginTop: 5 },
   rating: { fontWeight: 'bold', color: 'orange' },
   floatingButtons: {
+    width: '100%',
     position: 'absolute',
-    left: 20,
-    right: 20,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 10,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 15,
-    marginHorizontal: 5,
-    borderRadius: 12,
+    justifyContent: 'space-around',
     alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  buttonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
 });
 
 export default DetailApartmentScreen;

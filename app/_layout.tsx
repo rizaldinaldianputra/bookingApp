@@ -15,6 +15,7 @@ export default function RootLayout() {
             'home/home',
             'home/main',
             'home/product/detail',
+            'home/payment/payment',
           ];
           return {
             headerShown: !hideHeaderScreens.includes(route.name),

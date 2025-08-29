@@ -21,9 +21,10 @@ export default function Main() {
           let iconName: string = 'home';
           if (route.name === 'Home') iconName = 'home';
           else if (route.name === 'Search') iconName = 'search';
-          else if (route.name === 'Notifications') iconName = 'notifications';
-          else if (route.name === 'Profile') iconName = 'mail';
-          else if (route.name === 'Settings') iconName = 'settings';
+          else if (route.name === 'Wishlist') iconName = 'favorite-outline';
+          else if (route.name === 'Chat') iconName = 'mail-outline';
+          else if (route.name === 'Account') iconName = 'person-outline';
+
           return <MaterialIcons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: primaryColor, // hijau
@@ -32,9 +33,9 @@ export default function Main() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Search" component={SearchScreen} />
-      <Tab.Screen name="Notifications" component={SearchScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
-      <Tab.Screen name="Settings" component={SearchScreen} />
+      <Tab.Screen name="Wishlist" component={SearchScreen} />
+      <Tab.Screen name="Chat" component={ProfileScreen} />
+      <Tab.Screen name="Account" component={ProfileScreen} />
     </Tab.Navigator>
   );
 }

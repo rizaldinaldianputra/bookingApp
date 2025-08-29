@@ -86,7 +86,7 @@ const renderNearYouItem = ({ item }: { item: (typeof nearYouData)[0] }) => (
 
 // Render Item for Recommended section
 const handleCardPress = (itemId: string) => {
-  router.push(`/home/product/detail?id=${itemId}`);
+  router.push(`/home/product/detail`);
 };
 
 const renderRecommendedItem = ({ item }: { item: (typeof recommendedData)[0] }) => (
