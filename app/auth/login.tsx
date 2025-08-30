@@ -2,7 +2,8 @@ import CheckBox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { primaryColor } from '../../constants/Colors'; // Import the color variable
+import { colors } from '../../constants/colors';
+import { login } from '../../service/authService';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -10,14 +11,16 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
 
-  const handleLogin = () => {
-    if (email === 'admin@mail.com' && password === '123456') {
-      router.replace('/home/main');
-    } else {
-      Alert.alert('Login gagal', 'Email atau password salah');
+  const handleLogin = async () => {
+    try {
+      const res = await login(email, password);
+      Alert.alert('Login Success', `Welcome ${res.token}`);
+      // simpan token di AsyncStorage kalau mau dipakai lagi
+      // await AsyncStorage.setItem("token", res.token);
+    } catch (error: any) {
+      Alert.alert('Login Failed', error.message);
     }
   };
-
   const handleGoogleLogin = () => Alert.alert('Google login clicked');
   const handleAppleLogin = () => Alert.alert('Apple login clicked');
 
@@ -46,7 +49,7 @@ export default function LoginScreen() {
         <CheckBox
           value={remember}
           onValueChange={setRemember}
-          color={remember ? primaryColor : undefined}
+          color={remember ? colors.primary : undefined}
         />
         <Text style={styles.rememberText}>Remember me</Text>
       </View>
@@ -101,6 +104,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 16,
     fontSize: 16,
+    color: 'black',
   },
   rememberContainer: {
     flexDirection: 'row',
@@ -113,7 +117,7 @@ const styles = StyleSheet.create({
     color: '#000',
   },
   button: {
-    backgroundColor: primaryColor,
+    backgroundColor: colors.primary,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -170,7 +174,7 @@ const styles = StyleSheet.create({
   },
   signupLink: {
     fontSize: 14,
-    color: primaryColor,
+    color: colors.primary,
     fontWeight: '600',
   },
 });

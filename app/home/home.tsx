@@ -12,7 +12,7 @@ import {
   View,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { primaryColor } from '../../constants/Colors'; // Import the color variable
+import { colors } from '../../constants/colors';
 
 const { width } = Dimensions.get('window');
 
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   },
   distanceText: { color: '#fff', fontSize: 10, fontWeight: '500' },
   cardTitle: { marginTop: 5, fontSize: 14, fontWeight: '600', color: '#1F2937' },
-  subTitle: { fontSize: 8, fontWeight: '400', color: primaryColor },
+  subTitle: { fontSize: 8, fontWeight: '400', color: colors.primary },
 
   // Recommended Card Styles
   recommendedCard: {

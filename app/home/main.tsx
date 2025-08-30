@@ -1,6 +1,5 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import React from 'react';
-import { primaryColor } from '../../constants/Colors'; // Import the color variable
 
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
@@ -8,6 +7,7 @@ import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import ProfileScreen from '../profile/profile';
 import SearchScreen from '../search/search';
 
+import { colors } from '@/constants/colors';
 import HomeScreen from './home';
 
 const Tab = createBottomTabNavigator();
@@ -27,7 +27,7 @@ export default function Main() {
 
           return <MaterialIcons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: primaryColor, // hijau
+        tabBarActiveTintColor: colors.primary, // hijau
         tabBarInactiveTintColor: 'gray',
       })}
     >

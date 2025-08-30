@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { primaryColor } from '../../constants/Colors'; // Import the color variable
+import { colors } from '../../constants/colors';
 
 type CustomButtonProps = {
   onPress: () => void;
@@ -20,7 +20,7 @@ const styles = StyleSheet.create({
     width: 348,
     height: 54,
     borderRadius: 40,
-    backgroundColor: primaryColor,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     opacity: 1,

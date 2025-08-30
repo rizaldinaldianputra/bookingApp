@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { primaryColor } from '../../constants/Colors'; // Import the color variable
+import { colors } from '../../constants/colors';
 
 import {
   Dimensions,
@@ -221,7 +221,7 @@ const FilterModal = ({ isVisible, onClose, onApplyFilter, initialFilters }: Filt
                   <Icon
                     name={selectedFacilities.includes(facility) ? 'checkbox' : 'square-outline'}
                     size={20}
-                    color={selectedFacilities.includes(facility) ? primaryColor : '#9CA3AF'}
+                    color={selectedFacilities.includes(facility) ? colors.primary : '#9CA3AF'}
                   />
                   <Text style={styles.facilityText}>{facility}</Text>
                 </TouchableOpacity>
@@ -479,7 +479,7 @@ const styles = StyleSheet.create({
   cardPrice: {
     fontSize: 16,
     fontWeight: '700',
-    color: primaryColor,
+    color: colors.primary,
   },
   // Style Modal
   modalOverlay: {
@@ -522,7 +522,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   chipSelected: {
-    backgroundColor: primaryColor,
+    backgroundColor: colors.primary,
   },
   chipText: {
     color: '#374151',

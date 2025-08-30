@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
-import { primaryColor } from '../../constants/Colors'; // Import the color variable
+import { colors } from '../../constants/colors';
 
 export default function SplashScreen() {
   const router = useRouter();
@@ -28,7 +28,7 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   background: {
     flex: 1,
-    backgroundColor: primaryColor,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
   },

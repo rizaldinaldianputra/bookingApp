@@ -11,7 +11,7 @@ export default function CustomInput({ placeholder, style, ...props }: InputProps
     <TextInput
       style={[styles.input, style]}
       placeholder={placeholder}
-      placeholderTextColor="#FFFFFF"
+      placeholderTextColor="#9CA3AF" // abu-abu biar hint lebih terbaca
       {...props}
     />
   );
@@ -25,5 +25,6 @@ const styles = StyleSheet.create({
     borderWidth: 0, // tanpa border
     backgroundColor: '#FFFFFF', // opsional, bisa dihapus kalau mau transparan
     borderRadius: 8, // opsional
+    color: '#000000', // teks input hitam biar kontras
   },
 });

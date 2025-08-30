@@ -1,5 +1,5 @@
 import CustomButton from '@/components/ui/button';
-import { primaryColor } from '@/constants/Colors';
+import { colors } from '@/constants/colors';
 import { AntDesign, Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
     height: 54,
     borderRadius: 40,
 
-    backgroundColor: primaryColor,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     opacity: 1,
