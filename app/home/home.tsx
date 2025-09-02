@@ -128,9 +128,13 @@ export default function HomeScreen() {
       </Text>
 
       {/* Search Input */}
+
       <View style={styles.searchContainer}>
         <TextInput style={styles.searchInput} placeholder="Search" placeholderTextColor="#1B563A" />
-        <TouchableOpacity style={styles.filterButton}>
+        <TouchableOpacity
+          style={styles.filterButton}
+          onPress={() => router.push('/search/search')} // pindah ke tab Search
+        >
           <Icon name="menu" size={24} color="#fff" />
         </TouchableOpacity>
       </View>

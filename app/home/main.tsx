@@ -4,8 +4,8 @@ import React from 'react';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 
 // Screens
-import ProfileScreen from '../profile/profile';
 import SearchScreen from '../search/search';
+import ProfileScreen from './profile/profile';
 
 import { colors } from '@/constants/colors';
 import HomeScreen from './home';

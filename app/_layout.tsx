@@ -16,6 +16,8 @@ export default function RootLayout() {
             'home/main',
             'home/product/detail',
             'home/payment/payment',
+            'home/profile/transaksi/transaksi_list',
+            'home/profile/transaksi/transaksi_detail',
           ];
           return {
             headerShown: !hideHeaderScreens.includes(route.name),

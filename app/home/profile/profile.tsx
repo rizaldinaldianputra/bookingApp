@@ -1,7 +1,7 @@
 import { BASE_URL } from '@/constants/config';
 import { User } from '@/models/user';
 import { getUser } from '@/session/session';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router'; // gunakan hook ini
 import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
@@ -9,12 +9,15 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const ProfileScreen = () => {
   const [user, setUser] = useState<User | null>(null);
+  const router = useRouter(); // inisialisasi router
+
   useEffect(() => {
     (async () => {
       const data = await getUser();
       setUser(data);
     })();
   }, []);
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -46,7 +49,10 @@ const ProfileScreen = () => {
           <Feather name="user" size={24} color="#4CAF50" />
           <Text style={styles.menuItemText}>Edit Profile</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity
+          onPress={() => router.push('/home/profile/transaksi/transaksi_list')}
+          style={styles.menuItem}
+        >
           <Feather name="bookmark" size={24} color="#000" />
           <Text style={styles.menuItemText}>Transaksi Saya</Text>
         </TouchableOpacity>
@@ -76,7 +82,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    paddingTop: 50, // Adjust this for status bar
+    paddingTop: 50,
     backgroundColor: '#fff',
   },
   headerText: {
