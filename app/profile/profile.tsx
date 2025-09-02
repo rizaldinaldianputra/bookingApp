@@ -1,9 +1,20 @@
-import React from 'react';
+import { BASE_URL } from '@/constants/config';
+import { User } from '@/models/user';
+import { getUser } from '@/session/session';
+import { router } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 const ProfileScreen = () => {
+  const [user, setUser] = useState<User | null>(null);
+  useEffect(() => {
+    (async () => {
+      const data = await getUser();
+      setUser(data);
+    })();
+  }, []);
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -18,15 +29,15 @@ const ProfileScreen = () => {
       <View style={styles.profileInfo}>
         <Image
           source={{
-            uri: 'https://picsum.photos/200/300?random=1',
+            uri: BASE_URL + user?.gambarktp,
           }}
           style={styles.profileImage}
         />
         <TouchableOpacity style={styles.editIconContainer}>
           <Feather name="edit" size={16} color="#fff" style={styles.editIcon} />
         </TouchableOpacity>
-        <Text style={styles.nameText}>Muhammad Syahputra</Text>
-        <Text style={styles.emailText}>muhammadsyahputra@gmail.com</Text>
+        <Text style={styles.nameText}>{user?.nama}</Text>
+        <Text style={styles.emailText}>{user?.email}</Text>
       </View>
 
       {/* Menu Options */}
@@ -47,7 +58,7 @@ const ProfileScreen = () => {
           <Feather name="mail" size={24} color="#000" />
           <Text style={styles.menuItemText}>Keluhan & Saran</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity onPress={() => router.replace('/auth/login')} style={styles.menuItem}>
           <Feather name="log-out" size={24} color="#000" />
           <Text style={styles.menuItemText}>Logout</Text>
         </TouchableOpacity>

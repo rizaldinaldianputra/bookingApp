@@ -1,5 +1,5 @@
 import { User } from '../models/user';
-import { deleteRequest, getRequest, postRequest, putRequest } from './service';
+import { deleteRequest, getRequest, postRequest, putRequest } from './main_service';
 
 export const getUsers = () => getRequest<User[]>('/users');
 export const createUser = (data: Partial<User>) => postRequest<User>('/users', data);

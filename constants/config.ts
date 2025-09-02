@@ -1,1 +1,1 @@
-export const BASE_URL = 'https://app.sinar12.co.id/api/ecommerce/';
+export const BASE_URL = 'https://kos.cargo.or.id';

@@ -1,5 +1,7 @@
+import { User } from '@/models/user';
+import { getUser } from '@/session/session';
 import { router } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dimensions,
   FlatList,
@@ -104,11 +106,19 @@ const renderRecommendedItem = ({ item }: { item: (typeof recommendedData)[0] }) 
 
 // Main Component
 export default function HomeScreen() {
+  const [user, setUser] = useState<User | null>(null);
+  useEffect(() => {
+    (async () => {
+      const data = await getUser();
+      setUser(data);
+    })();
+  }, []);
+
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.greeting}>Hello Alfian,</Text>
+        <Text style={styles.greeting}> {user?.nama}</Text>
         <TouchableOpacity style={styles.notifButton}>
           <Icon name="notifications" size={24} color="#000" />
         </TouchableOpacity>

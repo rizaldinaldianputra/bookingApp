@@ -1,19 +1,19 @@
+import { getToken } from '@/session/session';
 import axios from 'axios';
 import { BASE_URL } from '../constants/config';
 
 const api = axios.create({
-  baseURL: BASE_URL, // ganti dengan base URL API kamu
+  baseURL: BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
 });
 
-// interceptor request (opsional, misalnya tambah token)
+// interceptor request
 api.interceptors.request.use(
   async (config) => {
-    // contoh token palsu
-    const token = '';
+    const token = await getToken(); // ambil dari session
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -21,19 +21,29 @@ api.interceptors.request.use(
   },
   (error) => Promise.reject(error),
 );
+api.interceptors.request.use((req) => {
+  console.log('REQUEST:', req.data);
+  return req;
+});
 
-// interceptor response (opsional, untuk error handling global)
+api.interceptors.response.use((res) => {
+  console.log('URL', res.request['responseURL']);
+  console.log('RESPONSE:', res.data);
+  return res;
+});
+// interceptor response
 api.interceptors.response.use(
   (response) => response,
+
   (error) => {
-    console.error('API Error:', error.response?.data || error.message);
+    console.error(error.response?.data['message']);
     return Promise.reject(error);
   },
 );
 
 // fungsi dasar
-export const getRequest = async <T>(url: string, params?: any): Promise<T> => {
-  const response = await api.get<T>(url, { params });
+export const getRequest = async <T>(url: string, queryParams?: any): Promise<T> => {
+  const response = await api.get<T>(url, { params: queryParams }); // <--- Cukup langsung gunakan queryParams
   return response.data;
 };
 

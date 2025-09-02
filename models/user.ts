@@ -1,5 +1,12 @@
 export interface User {
   id: number;
-  name: string;
+  nama: string;
+  nik: number;
   email: string;
+  alamat: string;
+  gambarktp: string;
+  fotoselfie: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
 }

@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+// App.tsx
+import MultiSlider from '@ptomasroos/react-native-multi-slider';
+import React, { useCallback, useEffect, useState } from 'react';
 import { colors } from '../../constants/colors';
 
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
   Image,
@@ -14,63 +17,26 @@ import {
   View,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { Fasilitas, FasilitasResponse } from '../../models/fasilistas';
+import { Lokasi, LokasiResponse } from '../../models/lokasi';
+import { getFasilitas } from '../../service/fasilitas_service';
+import { getLokasi } from '../../service/lokasi_service';
 
-// Mendefinisikan tipe data untuk filter menggunakan TypeScript
+import { KamarResponse as ApiKamarResponse, Kamar } from '../../models/kossan';
+import { getKos } from '../../service/kossan_service';
+
 interface FilterState {
   location: string;
   time: string;
   gender: string;
   facilities: string[];
+  minPrice: number;
+  maxPrice: number;
+  search: string;
 }
 
 const { width } = Dimensions.get('window');
 
-// Data dummy untuk properti yang direkomendasikan
-// Data dummy untuk properti yang direkomendasikan (semua pakai network image random)
-const recommendedData = [
-  {
-    id: '1',
-    name: 'Gunung Pati Hills',
-    price: '500.000',
-    image: { uri: 'https://picsum.photos/100/100?random=11' },
-    labels: ['1 Bathroom', '1 Bed', 'AC', 'WiFi', 'Couple'],
-    gender: 'Pria',
-  },
-  {
-    id: '2',
-    name: 'Simpang Lima Apart',
-    price: '700.000',
-    image: { uri: 'https://picsum.photos/100/100?random=12' },
-    labels: ['1 Bathroom', '1 Bed', 'AC', 'WiFi', 'Near Town', 'Televisi'],
-    gender: 'Wanita',
-  },
-  {
-    id: '3',
-    name: 'Village BSB',
-    price: '700.000',
-    image: { uri: 'https://picsum.photos/100/100?random=13' },
-    labels: ['1 Bathroom', '1 Bed', 'AC', 'WiFi', 'Near Town', 'CCTV'],
-    gender: 'Pria',
-  },
-  {
-    id: '4',
-    name: 'Tembalang Residence',
-    price: '650.000',
-    image: { uri: 'https://picsum.photos/100/100?random=14' },
-    labels: ['1 Bed', 'Wi-Fi', 'Kitchen'],
-    gender: 'Pria',
-  },
-  {
-    id: '5',
-    name: 'Gajahmada Kost',
-    price: '800.000',
-    image: { uri: 'https://picsum.photos/100/100?random=15' },
-    labels: ['1 Bed', 'AC', 'Wi-Fi', 'Parking'],
-    gender: 'Wanita',
-  },
-];
-
-// Komponen badge filter yang dapat ditutup
 const FilterBadge = ({ label, onClose }: { label: string; onClose: () => void }) => (
   <View style={styles.filterBadge}>
     <Text style={styles.filterBadgeText}>{label}</Text>
@@ -80,28 +46,51 @@ const FilterBadge = ({ label, onClose }: { label: string; onClose: () => void })
   </View>
 );
 
-// Komponen untuk menampilkan item rekomendasi
-const renderRecommendedItem = ({ item }: { item: (typeof recommendedData)[0] }) => (
-  <View style={styles.recommendedCard}>
-    <Image source={item.image} style={styles.recommendedImage} />
-    <View style={styles.recommendedDetails}>
-      <Text style={styles.cardTitle}>{item.name}</Text>
-      <View style={styles.labelContainer}>
-        {item.labels.map((label) => (
-          <View key={label} style={styles.labelBadge}>
-            <Text style={styles.labelText}>{label}</Text>
-          </View>
-        ))}
-      </View>
-      <View>
-        <Text style={styles.cardPrice}>Rp {item.price}</Text>
-        <Text style={styles.cardMonth}>{'Bulan'}</Text>
+const renderRecommendedItem = ({ item }: { item: Kamar }) => {
+  let facilitiesArray: string[] = [];
+  try {
+    if (item.fasilitas && typeof item.fasilitas === 'string') {
+      facilitiesArray = JSON.parse(item.fasilitas);
+    }
+  } catch (e) {
+    facilitiesArray = item.fasilitas ? [item.fasilitas as string] : [];
+  }
+
+  const displayedPrice = item.paket_harga?.perbulan_harga || 0;
+  const imageUrl =
+    item.lantai && item.lantai.length > 0 ? item.lantai[0] : 'https://via.placeholder.com/100';
+
+  return (
+    <View style={styles.recommendedCard}>
+      <Image source={{ uri: imageUrl }} style={styles.recommendedImage} />
+      <View style={styles.recommendedDetails}>
+        <Text style={styles.cardTitle}>{item.nama_kamar}</Text>
+        <View style={styles.labelContainer}>
+          {item.tipe_kos && (
+            <View key={item.tipe_kos} style={styles.labelBadge}>
+              <Text style={styles.labelText}>{item.tipe_kos}</Text>
+            </View>
+          )}
+          {item.jenis_kos && (
+            <View key={item.jenis_kos} style={styles.labelBadge}>
+              <Text style={styles.labelText}>{item.jenis_kos}</Text>
+            </View>
+          )}
+          {facilitiesArray.slice(0, 1).map((facility, index) => (
+            <View key={`fac-${index}`} style={styles.labelBadge}>
+              <Text style={styles.labelText}>{facility}</Text>
+            </View>
+          ))}
+        </View>
+        <View>
+          <Text style={styles.cardPrice}>Rp {displayedPrice.toLocaleString('id-ID')}</Text>
+          <Text style={styles.cardMonth}>{'Bulan'}</Text>
+        </View>
       </View>
     </View>
-  </View>
-);
+  );
+};
 
-// Mendefinisikan properti untuk komponen FilterModal
 interface FilterModalProps {
   isVisible: boolean;
   onClose: () => void;
@@ -109,27 +98,41 @@ interface FilterModalProps {
   initialFilters: FilterState;
 }
 
-// Komponen modal filter
 const FilterModal = ({ isVisible, onClose, onApplyFilter, initialFilters }: FilterModalProps) => {
+  const [lokasi, setLokasi] = useState<Lokasi[]>([]);
+  const [fasilitas, setFasilitas] = useState<Fasilitas[]>([]);
   const [selectedLocation, setSelectedLocation] = useState(initialFilters.location);
   const [selectedTime, setSelectedTime] = useState(initialFilters.time);
   const [selectedGender, setSelectedGender] = useState(initialFilters.gender);
   const [selectedFacilities, setSelectedFacilities] = useState<string[]>(initialFilters.facilities);
+  const [range, setRange] = useState([initialFilters.minPrice, initialFilters.maxPrice]);
 
-  const facilities = [
-    'Single Bed',
-    'Televisi',
-    'Wi-Fi',
-    'Kitchen',
-    'Twin Bed',
-    'Parking',
-    'Bathroom',
-    'CCTV',
-  ];
+  useEffect(() => {
+    setSelectedLocation(initialFilters.location);
+    setSelectedTime(initialFilters.time);
+    setSelectedGender(initialFilters.gender);
+    setSelectedFacilities(initialFilters.facilities);
+    setRange([initialFilters.minPrice, initialFilters.maxPrice]);
 
-  const handleFacilityToggle = (facility: string) => {
+    const fetchData = async () => {
+      try {
+        const lokasiData: LokasiResponse = await getLokasi();
+        setLokasi(lokasiData.data);
+
+        const fasilitasData: FasilitasResponse = await getFasilitas();
+        setFasilitas(fasilitasData.data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+    fetchData();
+  }, [initialFilters, isVisible]);
+
+  const handleFacilityToggle = (facilityName: string) => {
     setSelectedFacilities((prev) =>
-      prev.includes(facility) ? prev.filter((f) => f !== facility) : [...prev, facility],
+      prev.includes(facilityName)
+        ? prev.filter((f) => f !== facilityName)
+        : [...prev, facilityName],
     );
   };
 
@@ -138,6 +141,7 @@ const FilterModal = ({ isVisible, onClose, onApplyFilter, initialFilters }: Filt
     setSelectedTime('');
     setSelectedGender('');
     setSelectedFacilities([]);
+    setRange([0, 10000000]);
   };
 
   const handleApply = () => {
@@ -146,6 +150,9 @@ const FilterModal = ({ isVisible, onClose, onApplyFilter, initialFilters }: Filt
       time: selectedTime,
       gender: selectedGender,
       facilities: selectedFacilities,
+      minPrice: range[0],
+      maxPrice: range[1],
+      search: initialFilters.search,
     });
     onClose();
   };
@@ -157,28 +164,29 @@ const FilterModal = ({ isVisible, onClose, onApplyFilter, initialFilters }: Filt
           <ScrollView contentContainerStyle={{ paddingVertical: 10 }}>
             <Text style={styles.modalTitle}>Filter</Text>
 
-            {/* Filter Lokasi */}
             <Text style={styles.filterSectionTitle}>Lokasi</Text>
             <View style={styles.filterChipContainer}>
-              {['Semarang', 'Jakarta', 'Bandung'].map((loc) => (
+              {lokasi.map((loc) => (
                 <TouchableOpacity
-                  key={loc}
-                  style={[styles.chip, selectedLocation === loc && styles.chipSelected]}
-                  onPress={() => setSelectedLocation(loc)}
+                  key={loc.id}
+                  style={[styles.chip, selectedLocation === loc.nama && styles.chipSelected]}
+                  onPress={() => setSelectedLocation(loc.nama)}
                 >
                   <Text
-                    style={[styles.chipText, selectedLocation === loc && styles.chipTextSelected]}
+                    style={[
+                      styles.chipText,
+                      selectedLocation === loc.nama && styles.chipTextSelected,
+                    ]}
                   >
-                    {loc}
+                    {loc.nama}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            {/* Filter Waktu */}
             <Text style={styles.filterSectionTitle}>Waktu</Text>
             <View style={styles.filterChipContainer}>
-              {['Perbulan', 'Pertahun'].map((time) => (
+              {['Perbulan', '3 Bulan', '6 Bulan', 'Pertahun', 'Harian'].map((time) => (
                 <TouchableOpacity
                   key={time}
                   style={[styles.chip, selectedTime === time && styles.chipSelected]}
@@ -191,10 +199,9 @@ const FilterModal = ({ isVisible, onClose, onApplyFilter, initialFilters }: Filt
               ))}
             </View>
 
-            {/* Filter Gender */}
             <Text style={styles.filterSectionTitle}>Gender</Text>
             <View style={styles.filterChipContainer}>
-              {['Pria', 'Wanita', 'Campur'].map((gender) => (
+              {['Pria', 'Wanita', 'Pria/Wanita'].map((gender) => (
                 <TouchableOpacity
                   key={gender}
                   style={[styles.chip, selectedGender === gender && styles.chipSelected]}
@@ -209,38 +216,50 @@ const FilterModal = ({ isVisible, onClose, onApplyFilter, initialFilters }: Filt
               ))}
             </View>
 
-            {/* Filter Fasilitas */}
             <Text style={styles.filterSectionTitle}>Fasilitas</Text>
             <View style={styles.facilityGrid}>
-              {facilities.map((facility) => (
+              {fasilitas.map((facility) => (
                 <TouchableOpacity
-                  key={facility}
+                  key={facility.id}
                   style={styles.facilityCheckboxContainer}
-                  onPress={() => handleFacilityToggle(facility)}
+                  onPress={() => handleFacilityToggle(facility.nama)}
                 >
                   <Icon
-                    name={selectedFacilities.includes(facility) ? 'checkbox' : 'square-outline'}
+                    name={
+                      selectedFacilities.includes(facility.nama) ? 'checkbox' : 'square-outline'
+                    }
                     size={20}
-                    color={selectedFacilities.includes(facility) ? colors.primary : '#9CA3AF'}
+                    color={selectedFacilities.includes(facility.nama) ? colors.primary : '#9CA3AF'}
                   />
-                  <Text style={styles.facilityText}>{facility}</Text>
+                  <Text style={styles.facilityText}>{facility.nama}</Text>
                 </TouchableOpacity>
               ))}
             </View>
 
-            {/* Range Harga */}
             <Text style={styles.filterSectionTitle}>Harga</Text>
-            <View style={styles.priceRangeContainer}>
-              <View style={styles.priceBadge}>
-                <Text style={styles.priceText}>Rp 100.000</Text>
+            <View style={styles.containerPrice}>
+              <MultiSlider
+                values={range}
+                min={0}
+                max={10000000}
+                step={100000}
+                onValuesChange={setRange}
+                sliderLength={width - 80}
+                selectedStyle={{ backgroundColor: colors.primary }}
+                markerStyle={{ backgroundColor: colors.primary }}
+                minMarkerOverlapDistance={20}
+              />
+            </View>
+            <View style={styles.rangePrice}>
+              <View style={styles.priceBox}>
+                <Text style={styles.filterRange}>Rp {range[0].toLocaleString('id-ID')}</Text>
               </View>
-              <View style={styles.priceBadge}>
-                <Text style={styles.priceText}>Rp 500.000</Text>
+              <View style={styles.priceBox}>
+                <Text style={styles.filterRange}>Rp {range[1].toLocaleString('id-ID')}</Text>
               </View>
             </View>
           </ScrollView>
 
-          {/* Tombol aksi */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
               <Text style={styles.resetButtonText}>Reset</Text>
@@ -255,7 +274,6 @@ const FilterModal = ({ isVisible, onClose, onApplyFilter, initialFilters }: Filt
   );
 };
 
-// Komponen Utama
 export default function App() {
   const [isFilterModalVisible, setFilterModalVisible] = useState(false);
   const [activeFilters, setActiveFilters] = useState<FilterState>({
@@ -263,31 +281,127 @@ export default function App() {
     time: '',
     gender: '',
     facilities: [],
+    minPrice: 0,
+    maxPrice: 10000000,
+    search: '',
   });
+
+  const [kosData, setKosData] = useState<Kamar[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+
+  const fetchKosData = useCallback(
+    async (page: number, filters: FilterState, isNewSearch: boolean = false) => {
+      if (isLoading && !isNewSearch) return;
+      if (!hasMore && page > 1 && !isNewSearch) return;
+
+      setIsLoading(true);
+
+      try {
+        const params: any = { current_page: page, per_page: 10 };
+        if (filters.search) params.search = filters.search;
+        if (filters.location) params.lokasi_kos = filters.location;
+        if (filters.gender) params.jenis_kos = filters.gender;
+        if (filters.facilities.length > 0) params.fasilitas = JSON.stringify(filters.facilities);
+        if (filters.minPrice > 0) params.min_harga = filters.minPrice;
+        if (filters.maxPrice < 10000000) params.max_harga = filters.maxPrice;
+
+        const response: ApiKamarResponse = await getKos(params);
+
+        if (response && response.success) {
+          if (response.data && response.data.length > 0) {
+            setKosData((prevData) =>
+              page === 1 ? response.data : [...prevData, ...response.data],
+            );
+            setCurrentPage(response.meta.current_page);
+            setHasMore(response.meta.current_page < response.meta.last_page);
+          } else {
+            if (page === 1) setKosData([]);
+            setHasMore(false);
+          }
+        } else {
+          setKosData([]);
+          setHasMore(false);
+        }
+      } catch (error) {
+        console.error(error);
+        setKosData([]);
+        setHasMore(false);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [isLoading, hasMore],
+  );
+
+  useEffect(() => {
+    setKosData([]);
+    setCurrentPage(1);
+    setHasMore(true);
+    fetchKosData(1, activeFilters, true);
+  }, [activeFilters]);
 
   const handleApplyFilter = (newFilters: FilterState) => {
     setActiveFilters(newFilters);
   };
 
+  const handleSearchChange = (text: string) => {
+    setActiveFilters((prev) => ({ ...prev, search: text }));
+  };
+
+  const handleSearchSubmit = () => {
+    setActiveFilters((prev) => ({ ...prev, search: prev.search }));
+  };
+
   const getActiveFilterLabels = () => {
     const labels: string[] = [];
+    if (activeFilters.location) labels.push(activeFilters.location);
     if (activeFilters.time) labels.push(activeFilters.time);
     if (activeFilters.gender) labels.push(activeFilters.gender);
     activeFilters.facilities.forEach((facility) => labels.push(facility));
+    if (activeFilters.minPrice > 0 || activeFilters.maxPrice < 10000000) {
+      labels.push(
+        `Rp ${activeFilters.minPrice.toLocaleString(
+          'id-ID',
+        )} - Rp ${activeFilters.maxPrice.toLocaleString('id-ID')}`,
+      );
+    }
+    if (activeFilters.search) labels.push(`Search: "${activeFilters.search}"`);
     return labels;
   };
 
-  const filteredData = recommendedData.filter((item) => {
-    const matchesGender = !activeFilters.gender || item.gender === activeFilters.gender;
-    const matchesFacilities = activeFilters.facilities.every((facility) =>
-      item.labels.includes(facility),
-    );
-    return matchesGender && matchesFacilities;
-  });
+  const removeFilter = (labelToRemove: string) => {
+    setActiveFilters((prevFilters) => {
+      const newFilters = { ...prevFilters };
+      if (newFilters.location === labelToRemove) newFilters.location = '';
+      else if (newFilters.time === labelToRemove) newFilters.time = '';
+      else if (newFilters.gender === labelToRemove) newFilters.gender = '';
+      else if (labelToRemove.startsWith('Rp ') && labelToRemove.includes(' - Rp ')) {
+        newFilters.minPrice = 0;
+        newFilters.maxPrice = 10000000;
+      } else if (labelToRemove.startsWith('Search: "') && labelToRemove.endsWith('"')) {
+        newFilters.search = '';
+      } else {
+        newFilters.facilities = newFilters.facilities.filter((f) => f !== labelToRemove);
+      }
+      return newFilters;
+    });
+  };
+
+  const loadMoreData = () => {
+    if (hasMore && !isLoading) fetchKosData(currentPage + 1, activeFilters);
+  };
+
+  const renderFooter = () =>
+    isLoading && kosData.length > 0 ? (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    ) : null;
 
   return (
     <View style={styles.fullScreenContainer}>
-      {/* Header Pencarian */}
       <View style={styles.searchHeader}>
         <TouchableOpacity>
           <Icon name="arrow-back" size={24} color="#1F2937" />
@@ -296,14 +410,16 @@ export default function App() {
         <View style={{ width: 24 }} />
       </View>
 
-      {/* Input Pencarian dan Tombol Filter */}
       <View style={styles.searchBarContainer}>
         <View style={styles.searchBox}>
           <Icon name="search" size={20} color="#9CA3AF" style={{ marginRight: 8 }} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Semarang"
+            placeholder="Cari kos..."
             placeholderTextColor="#9CA3AF"
+            value={activeFilters.search}
+            onChangeText={handleSearchChange}
+            returnKeyType="search"
           />
         </View>
         <TouchableOpacity style={styles.filterButton} onPress={() => setFilterModalVisible(true)}>
@@ -311,40 +427,29 @@ export default function App() {
         </TouchableOpacity>
       </View>
 
-      {/* Badge Filter Aktif */}
       <View style={styles.filtersContainer}>
         {getActiveFilterLabels().map((label, index) => (
-          <FilterBadge
-            key={index}
-            label={label}
-            onClose={() => {
-              const newFilters = { ...activeFilters };
-              if (label === newFilters.time) {
-                newFilters.time = '';
-              } else if (label === newFilters.gender) {
-                newFilters.gender = '';
-              } else {
-                newFilters.facilities = newFilters.facilities.filter((f) => f !== label);
-              }
-              setActiveFilters(newFilters);
-            }}
-          />
+          <FilterBadge key={index} label={label} onClose={() => removeFilter(label)} />
         ))}
       </View>
 
-      <ScrollView style={styles.container}>
-        {/* Bagian Hasil Pencarian */}
-        <Text style={styles.resultsTitle}>Result ({filteredData.length})</Text>
-        <FlatList
-          data={filteredData}
-          renderItem={renderRecommendedItem}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-          scrollEnabled={false}
-        />
-      </ScrollView>
+      <FlatList
+        data={kosData}
+        renderItem={renderRecommendedItem}
+        keyExtractor={(item, index) => (item.id ? item.id.toString() : `item-${index}`)}
+        contentContainerStyle={styles.listContentContainer}
+        onEndReached={loadMoreData}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={renderFooter}
+        ListEmptyComponent={
+          !isLoading && kosData.length === 0 && !hasMore ? (
+            <Text style={styles.emptyText}>Tidak ada kos yang ditemukan.</Text>
+          ) : isLoading && kosData.length === 0 && currentPage === 1 ? (
+            <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 50 }} />
+          ) : null
+        }
+      />
 
-      {/* Modal Filter */}
       <FilterModal
         isVisible={isFilterModalVisible}
         onClose={() => setFilterModalVisible(false)}
@@ -358,7 +463,24 @@ export default function App() {
 // Stylesheet
 const styles = StyleSheet.create({
   fullScreenContainer: { flex: 1, backgroundColor: '#F9FAFB' },
-  container: { flex: 1, paddingHorizontal: 20 },
+  containerPrice: { alignItems: 'center', marginHorizontal: 5 },
+  rangePrice: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
+    marginTop: 10,
+  },
+  priceBox: {
+    borderRadius: 18,
+    backgroundColor: '#F8F8F8',
+    borderWidth: 1,
+    borderColor: 'rgba(222, 222, 222, 1.0)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    minWidth: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   searchHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -395,10 +517,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  searchInput: {
-    flex: 1,
-    color: '#1F2937',
-  },
+  searchInput: { flex: 1, color: '#1F2937', paddingVertical: 0 },
   filterButton: {
     marginLeft: 10,
     backgroundColor: '#0f172a',
@@ -426,17 +545,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginBottom: 8,
   },
-  filterBadgeText: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#4F8B6E',
-  },
-  resultsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginVertical: 15,
-    color: '#1F2937',
-  },
+  filterBadgeText: { fontSize: 10, fontWeight: '600', color: '#4F8B6E' },
   recommendedCard: {
     flexDirection: 'row',
     backgroundColor: '#fff',
@@ -450,14 +559,16 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  recommendedImage: { width: 100, height: 100, borderRadius: 10 },
-  recommendedDetails: { marginLeft: 10, flex: 1 },
-  cardTitle: { fontSize: 16, fontWeight: '600', color: '#1F2937', marginBottom: 5 },
-  labelContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 8,
+  recommendedImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 10,
+    marginRight: 10,
+    resizeMode: 'cover',
   },
+  recommendedDetails: { flex: 1 },
+  cardTitle: { fontSize: 16, fontWeight: '600', color: '#1F2937', marginBottom: 5 },
+  labelContainer: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
   labelBadge: {
     backgroundColor: '#F3F3F3',
     borderRadius: 5,
@@ -466,32 +577,16 @@ const styles = StyleSheet.create({
     marginRight: 4,
     marginBottom: 4,
   },
-  labelText: {
-    fontSize: 10,
-    fontWeight: '400',
-    color: '#949494',
-  },
-  cardMonth: {
-    fontSize: 10,
-    fontWeight: '400',
-    color: '#121212',
-  },
-  cardPrice: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.primary,
-  },
-  // Style Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
+  labelText: { fontSize: 10, fontWeight: '400', color: '#949494' },
+  cardMonth: { fontSize: 10, fontWeight: '400', color: '#121212' },
+  cardPrice: { fontSize: 16, fontWeight: '700', color: colors.primary },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' },
   modalContent: {
     backgroundColor: '#F9FAFB',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     maxHeight: '80%',
+    paddingBottom: 20,
   },
   modalTitle: {
     fontSize: 18,
@@ -499,6 +594,7 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 10,
     textAlign: 'center',
+    paddingTop: 15,
   },
   filterSectionTitle: {
     fontSize: 16,
@@ -508,11 +604,8 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 20,
   },
-  filterChipContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 20,
-  },
+  filterRange: { fontSize: 12, fontWeight: '600', color: '#1F2937' },
+  filterChipContainer: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 20 },
   chip: {
     backgroundColor: '#E5E7EB',
     borderRadius: 20,
@@ -521,20 +614,13 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginBottom: 8,
   },
-  chipSelected: {
-    backgroundColor: colors.primary,
-  },
-  chipText: {
-    color: '#374151',
-    fontWeight: '500',
-  },
-  chipTextSelected: {
-    color: '#fff',
-  },
+  chipSelected: { backgroundColor: colors.primary },
+  chipText: { color: '#374151', fontWeight: '500' },
+  chipTextSelected: { color: '#fff' },
   facilityGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     paddingHorizontal: 20,
   },
   facilityCheckboxContainer: {
@@ -542,34 +628,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '48%',
     marginBottom: 10,
+    marginRight: '2%',
   },
-  facilityText: {
-    marginLeft: 8,
-    color: '#374151',
-    fontSize: 14,
-  },
-  priceRangeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-    paddingHorizontal: 20,
-  },
-  priceBadge: {
-    backgroundColor: '#E5E7EB',
-    borderRadius: 20,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-  },
-  priceText: {
-    color: '#374151',
-    fontWeight: '600',
-  },
+  facilityText: { marginLeft: 8, color: '#374151', fontSize: 14 },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     padding: 20,
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
+    backgroundColor: '#F9FAFB',
   },
   resetButton: {
     flex: 1,
@@ -579,10 +647,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 10,
   },
-  resetButtonText: {
-    color: '#065F46',
-    fontWeight: 'bold',
-  },
+  resetButtonText: { color: '#065F46', fontWeight: 'bold' },
   applyButton: {
     flex: 1,
     backgroundColor: '#065F46',
@@ -590,8 +655,8 @@ const styles = StyleSheet.create({
     padding: 15,
     alignItems: 'center',
   },
-  applyButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
+  applyButtonText: { color: '#fff', fontWeight: 'bold' },
+  listContentContainer: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 },
+  footerLoader: { paddingVertical: 20, alignItems: 'center' },
+  emptyText: { textAlign: 'center', marginTop: 50, fontSize: 16, color: '#9CA3AF' },
 });

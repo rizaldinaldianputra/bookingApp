@@ -1,9 +1,9 @@
 import CheckBox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { colors } from '../../constants/colors';
-import { login } from '../../service/authService';
+import useAuthHook from '../../hooks/auth';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -11,18 +11,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
 
-  const handleLogin = async () => {
-    try {
-      const res = await login(email, password);
-      Alert.alert('Login Success', `Welcome ${res.token}`);
-      // simpan token di AsyncStorage kalau mau dipakai lagi
-      // await AsyncStorage.setItem("token", res.token);
-    } catch (error: any) {
-      Alert.alert('Login Failed', error.message);
-    }
-  };
-  const handleGoogleLogin = () => Alert.alert('Google login clicked');
-  const handleAppleLogin = () => Alert.alert('Apple login clicked');
+  const { handleLogin, handleLoginGoogle, handleLoginApple, loading, error } = useAuthHook();
 
   return (
     <View style={styles.wrapper}>
@@ -54,7 +43,7 @@ export default function LoginScreen() {
         <Text style={styles.rememberText}>Remember me</Text>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
+      <TouchableOpacity style={styles.button} onPress={() => handleLogin(email, password)}>
         <Text style={styles.buttonText}>Sign In</Text>
       </TouchableOpacity>
 
@@ -65,10 +54,16 @@ export default function LoginScreen() {
       </View>
 
       <View style={styles.socialContainer}>
-        <TouchableOpacity style={styles.socialButton} onPress={handleGoogleLogin}>
+        <TouchableOpacity
+          style={styles.socialButton}
+          onPress={() => handleLoginApple(email, password)}
+        >
           <Image source={require('../../assets/images/google.png')} style={styles.socialIcon} />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.socialButton} onPress={handleAppleLogin}>
+        <TouchableOpacity
+          style={styles.socialButton}
+          onPress={() => handleLoginApple(email, password)}
+        >
           <Image source={require('../../assets/images/apple.png')} style={styles.socialIcon} />
         </TouchableOpacity>
       </View>

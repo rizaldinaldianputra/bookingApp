@@ -7,15 +7,20 @@
     "icon": "./assets/images/logo.png",
     "scheme": "bookingapp",
     "userInterfaceStyle": "automatic",
+
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
+      "jsEngine": "hermes",
+
       "bundleIdentifier": "com.rizaldinp.bookingApp",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
+      "jsEngine": "hermes",
+
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo.png",
         "backgroundColor": "#1B563A"
@@ -28,7 +33,6 @@
       "output": "static",
       "favicon": "./assets/images/logo.png"
     },
-    "plugins": ["expo-router"],
     "experiments": {
       "typedRoutes": true
     },
