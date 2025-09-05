@@ -1,3 +1,4 @@
+import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
@@ -5,7 +6,7 @@ import { colors } from '../../constants/colors';
 
 export default function SplashScreen() {
   const router = useRouter();
-
+  const { isFirstInstall } = useAuth();
   useEffect(() => {
     const timer = setTimeout(() => {
       router.replace('/onboarding/onboarding'); // ganti sesuai path screen mu

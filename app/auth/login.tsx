@@ -1,7 +1,15 @@
 import CheckBox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  BackHandler,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { colors } from '../../constants/colors';
 import useAuthHook from '../../hooks/auth';
 
@@ -10,7 +18,16 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
+  useEffect(() => {
+    const backAction = () => {
+      // blok tombol back agar tidak balik ke home
+      return true;
+    };
 
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+
+    return () => backHandler.remove();
+  }, []);
   const { handleLogin, handleLoginGoogle, handleLoginApple, loading, error } = useAuthHook();
 
   return (

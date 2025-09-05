@@ -1,4 +1,5 @@
 import { BASE_URL } from '@/constants/config';
+import { useAuth } from '@/context/AuthContext';
 import { User } from '@/models/user';
 import { getUser } from '@/session/session';
 import { useRouter } from 'expo-router'; // gunakan hook ini
@@ -10,6 +11,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 const ProfileScreen = () => {
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter(); // inisialisasi router
+  const { token, logout } = useAuth();
 
   useEffect(() => {
     (async () => {
@@ -32,7 +34,7 @@ const ProfileScreen = () => {
       <View style={styles.profileInfo}>
         <Image
           source={{
-            uri: BASE_URL + user?.gambarktp,
+            uri: BASE_URL + user?.fotoselfie,
           }}
           style={styles.profileImage}
         />
@@ -60,11 +62,20 @@ const ProfileScreen = () => {
           <Feather name="bookmark" size={24} color="#000" />
           <Text style={styles.menuItemText}>Tagihan Saya</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity
+          onPress={() => router.push('/home/profile/ticket/ticket_list')}
+          style={styles.menuItem}
+        >
           <Feather name="mail" size={24} color="#000" />
           <Text style={styles.menuItemText}>Keluhan & Saran</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.replace('/auth/login')} style={styles.menuItem}>
+        <TouchableOpacity
+          onPress={async () => {
+            await logout();
+            router.replace('/auth/login');
+          }}
+          style={styles.menuItem}
+        >
           <Feather name="log-out" size={24} color="#000" />
           <Text style={styles.menuItemText}>Logout</Text>
         </TouchableOpacity>

@@ -33,8 +33,8 @@ export default function Main() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Search" component={SearchScreen} />
-      <Tab.Screen name="Wishlist" component={SearchScreen} />
-      <Tab.Screen name="Chat" component={ProfileScreen} />
+      {/* <Tab.Screen name="Wishlist" component={SearchScreen} />
+      <Tab.Screen name="Chat" component={ProfileScreen} /> */}
       <Tab.Screen name="Account" component={ProfileScreen} />
     </Tab.Navigator>
   );

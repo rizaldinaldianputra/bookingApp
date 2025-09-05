@@ -22,6 +22,8 @@ import { Lokasi, LokasiResponse } from '../../models/lokasi';
 import { getFasilitas } from '../../service/fasilitas_service';
 import { getLokasi } from '../../service/lokasi_service';
 
+import { BASE_URL } from '@/constants/config';
+import { router } from 'expo-router';
 import { KamarResponse as ApiKamarResponse, Kamar } from '../../models/kossan';
 import { getKos } from '../../service/kossan_service';
 
@@ -58,36 +60,40 @@ const renderRecommendedItem = ({ item }: { item: Kamar }) => {
 
   const displayedPrice = item.paket_harga?.perbulan_harga || 0;
   const imageUrl =
-    item.lantai && item.lantai.length > 0 ? item.lantai[0] : 'https://via.placeholder.com/100';
+    item.gallery && item.gallery.length > 0
+      ? `${BASE_URL}${item.gallery[0].url}` // pakai url bukan nama_file
+      : 'https://via.placeholder.com/100';
 
   return (
-    <View style={styles.recommendedCard}>
-      <Image source={{ uri: imageUrl }} style={styles.recommendedImage} />
-      <View style={styles.recommendedDetails}>
-        <Text style={styles.cardTitle}>{item.nama_kamar}</Text>
-        <View style={styles.labelContainer}>
-          {item.tipe_kos && (
-            <View key={item.tipe_kos} style={styles.labelBadge}>
-              <Text style={styles.labelText}>{item.tipe_kos}</Text>
-            </View>
-          )}
-          {item.jenis_kos && (
-            <View key={item.jenis_kos} style={styles.labelBadge}>
-              <Text style={styles.labelText}>{item.jenis_kos}</Text>
-            </View>
-          )}
-          {facilitiesArray.slice(0, 1).map((facility, index) => (
-            <View key={`fac-${index}`} style={styles.labelBadge}>
-              <Text style={styles.labelText}>{facility}</Text>
-            </View>
-          ))}
-        </View>
-        <View>
-          <Text style={styles.cardPrice}>Rp {displayedPrice.toLocaleString('id-ID')}</Text>
-          <Text style={styles.cardMonth}>{'Bulan'}</Text>
+    <TouchableOpacity onPress={() => router.push(`/home/product/detail?id=${item.id}`)}>
+      <View style={styles.recommendedCard}>
+        <Image source={{ uri: imageUrl }} style={styles.recommendedImage} />
+        <View style={styles.recommendedDetails}>
+          <Text style={styles.cardTitle}>{item.nama_kamar}</Text>
+          <View style={styles.labelContainer}>
+            {item.tipe_kos && (
+              <View key={item.tipe_kos} style={styles.labelBadge}>
+                <Text style={styles.labelText}>{item.tipe_kos}</Text>
+              </View>
+            )}
+            {item.jenis_kos && (
+              <View key={item.jenis_kos} style={styles.labelBadge}>
+                <Text style={styles.labelText}>{item.jenis_kos}</Text>
+              </View>
+            )}
+            {facilitiesArray.slice(0, 1).map((facility, index) => (
+              <View key={`fac-${index}`} style={styles.labelBadge}>
+                <Text style={styles.labelText}>{facility}</Text>
+              </View>
+            ))}
+          </View>
+          <View>
+            <Text style={styles.cardPrice}>Rp {displayedPrice.toLocaleString('id-ID')}</Text>
+            <Text style={styles.cardMonth}>{'Bulan'}</Text>
+          </View>
         </View>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 };
 

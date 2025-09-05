@@ -1,4 +1,5 @@
 // kossan_service.ts
+import { DetailKosResponse } from '@/models/detail_kossan';
 import { KamarResponse } from '../models/kossan'; // Ini adalah KamarResponse yang memiliki success, data, meta
 import { getRequest } from './main_service';
 
@@ -16,3 +17,4 @@ interface GetKosParams {
 }
 
 export const getKos = (params: GetKosParams) => getRequest<KamarResponse>('/api/getKos', params); // <- Langsung objek `params` dari GetKosParams
+export const getKosById = (id: string) => getRequest<DetailKosResponse>(`/api/getKos/${id}`);

@@ -5,12 +5,17 @@ import { colors } from '../../constants/colors';
 type CustomButtonProps = {
   onPress: () => void;
   title: string;
+  disabled?: boolean;
 };
 
-export default function CustomButton({ onPress, title }: CustomButtonProps) {
+export default function CustomButton({ onPress, title, disabled = false }: CustomButtonProps) {
   return (
-    <TouchableOpacity style={styles.button} onPress={onPress}>
-      <Text style={styles.buttonText}>{title}</Text>
+    <TouchableOpacity
+      style={[styles.button, disabled && styles.buttonDisabled]}
+      onPress={onPress}
+      disabled={disabled}
+    >
+      <Text style={[styles.buttonText, disabled && styles.buttonTextDisabled]}>{title}</Text>
     </TouchableOpacity>
   );
 }
@@ -23,17 +28,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    opacity: 1,
     marginTop: 20,
   },
+  buttonDisabled: {
+    backgroundColor: '#ccc',
+  },
   buttonText: {
-    width: 153,
-    height: 22,
     fontFamily: 'Poppins',
     fontSize: 14,
     fontWeight: '500',
-    fontStyle: 'normal',
     lineHeight: 22,
     color: '#FFFFFF',
+    textAlign: 'center',
+  },
+  buttonTextDisabled: {
+    color: '#666',
   },
 });

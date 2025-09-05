@@ -1,10 +1,13 @@
 import CustomButton from '@/components/ui/button';
 import { colors } from '@/constants/colors';
+import { useAuth } from '@/context/AuthContext';
 import { AntDesign, Feather } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router'; // Import useLocalSearchParams
+import React, { useEffect, useState } from 'react'; // Import useEffect
 import {
-  Image,
+  ActivityIndicator,
+  Image, // Tambahkan ini untuk indikator loading
+  Linking,
   Modal,
   ScrollView,
   StyleSheet,
@@ -17,15 +20,13 @@ import { Calendar } from 'react-native-calendars';
 import MapView, { Marker } from 'react-native-maps';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Tipe data
-type RoomOption = {
-  id: string;
-  title: string;
-  subtitle: string;
-  price: string;
-  image: string;
-};
+// Import model yang sudah Anda berikan
+import { DetailKosData, Fasilitas, Gallery, Kamar } from '../../../models/detail_kossan';
+// Import service yang sudah Anda berikan
+import { BASE_URL } from '@/constants/config';
+import { getKosById } from '../../../service/kossan_service';
 
+// Data dummy untuk reviews (karena tidak ada di DetailKosData Anda)
 type Review = {
   id: string;
   name: string;
@@ -35,57 +36,66 @@ type Review = {
   profilePic: string;
 };
 
-// Data dummy
-const roomOptions: RoomOption[] = [
-  {
-    id: '1',
-    title: 'Gunung Pati Hills',
-    subtitle: '1 Bedroom',
-    price: 'Rp 500.000',
-    image: 'https://picsum.photos/200/300?random=1',
-  },
-  {
-    id: '2',
-    title: 'Simpang Lima Apart',
-    subtitle: '2 Bedroom',
-    price: 'Rp 700.000',
-    image: 'https://picsum.photos/200/300?random=2',
-  },
-  {
-    id: '3',
-    title: 'Village BSB',
-    subtitle: '1 Bedroom',
-    price: 'Rp 700.000',
-    image: 'https://picsum.photos/200/300?random=3',
-  },
-];
-
 const reviews: Review[] = [
   {
     id: '1',
     name: 'Jennifer Lucia',
     date: 'Dec 16, 2012',
     rating: 5,
-    text: 'Lorem ipsum is simply dummy text of the printing and typesetting industry.',
+    text: 'Kosnya bersih dan nyaman, fasilitas lengkap!',
     profilePic: 'https://randomuser.me/api/portraits/women/1.jpg',
   },
   {
     id: '2',
-    name: 'Jennifer Lucia',
-    date: 'Dec 12, 2012',
-    rating: 5,
-    text: 'Lorem ipsum is simply dummy text of the printing and typesetting industry.',
-    profilePic: 'https://randomuser.me/api/portraits/women/2.jpg',
+    name: 'Budi Santoso',
+    date: 'Jan 05, 2013',
+    rating: 4,
+    text: 'Lokasi strategis, pemilik kos ramah.',
+    profilePic: 'https://randomuser.me/api/portraits/men/2.jpg',
   },
 ];
 
 const DetailApartmentScreen: React.FC = () => {
+  const { token } = useAuth();
+  const { id } = useLocalSearchParams<{ id: string }>(); // Ambil ID dari URL params
   const insets = useSafeAreaInsets();
+
+  const [kosData, setKosData] = useState<DetailKosData | null>(null);
   const [visible, setVisible] = useState(false);
   const [showCheckIn, setShowCheckIn] = useState(false);
   const [showCheckOut, setShowCheckOut] = useState(false);
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
+  const [isLoading, setIsLoading] = useState(true); // State untuk mengelola loading
+
+  // Default coordinate jika tidak ada di data kos (sesuai model Anda)
+  const DEFAULT_LATITUDE = -6.9915;
+  const DEFAULT_LONGITUDE = 110.4225;
+
+  useEffect(() => {
+    if (!id) {
+      console.warn('DEBUGGING: ID is missing, cannot fetch kos data.');
+      setIsLoading(false); // Pastikan loading berhenti jika ID tidak ada
+      return;
+    }
+
+    setIsLoading(true); // Mulai loading
+    console.log('DEBUGGING: Fetching kos data for ID:', id);
+    getKosById(String(id))
+      .then((res) => {
+        console.log('DEBUGGING: Kos data fetched successfully.');
+        // console.log('DEBUGGING: Fetched Data:', JSON.stringify(res.data, null, 2)); // Log data lengkap
+        setKosData(res.data); // res.data bertipe DetailKosData
+      })
+      .catch((err) => {
+        console.error('DEBUGGING: Error fetching kos data:', err);
+        // Tampilkan pesan error ke user jika perlu
+      })
+      .finally(() => {
+        setIsLoading(false); // Selesai loading, baik sukses maupun gagal
+        console.log('DEBUGGING: Fetching process finished.');
+      });
+  }, [id]); // Dependensi ID agar re-fetch jika ID berubah
 
   const toggleCheckIn = () => {
     setShowCheckIn(!showCheckIn);
@@ -96,13 +106,57 @@ const DetailApartmentScreen: React.FC = () => {
     setShowCheckOut(!showCheckOut);
     setShowCheckIn(false);
   };
+
+  const openGoogleMaps = () => {
+    if (kosData?.link_maps) {
+      Linking.openURL(kosData.link_maps).catch((err) =>
+        console.error("DEBUGGING: Couldn't open URL:", err),
+      );
+    } else {
+      console.warn('DEBUGGING: Link maps not available.');
+    }
+  };
+
+  // Tampilkan loading state
+  if (isLoading) {
+    console.log('DEBUGGING: Displaying loading screen.');
+    return (
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={{ marginTop: 10 }}>Loading...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  // Jika data sudah selesai di-fetch tapi kosData masih null (misal: ID tidak valid, atau API return null)
+  if (!kosData) {
+    console.log('DEBUGGING: Data fetching finished, but kosData is null. Showing "No data".');
+    return (
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Tidak ada data kos ditemukan.</Text>
+        <CustomButton onPress={() => router.back()} title="Kembali" />
+      </SafeAreaView>
+    );
+  }
+
+  // Pastikan ada kamar sebelum mengakses kamar[0]
+  const hasRooms = kosData.kamar && kosData.kamar.length > 0;
+  const firstRoom = hasRooms ? kosData.kamar[0] : null;
+
+  console.log('DEBUGGING: Rendering DetailApartmentScreen with kosData:', kosData.nama);
+
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 140 }}>
         {/* Header */}
         <View style={styles.header}>
           <Image
-            source={{ uri: 'https://picsum.photos/200/300?random=10' }}
+            source={{
+              uri:
+                firstRoom && firstRoom.gallery && firstRoom.gallery.length > 0
+                  ? BASE_URL + firstRoom.gallery[0].url
+                  : 'https://via.placeholder.com/300', // Gambar placeholder
+            }}
             style={styles.mainImage}
           />
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -116,53 +170,61 @@ const DetailApartmentScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Info Apartemen */}
+        {/* Info Kos */}
         <View style={styles.infoContainer}>
-          <Text style={styles.title}>Hilux Village Asri Tower II Orchard 2BR</Text>
-          <Text style={styles.subtitle}>A SedayuCity, barat Semarang</Text>
+          <Text style={styles.title}>{kosData.nama}</Text>
+          <Text style={styles.subtitle}>{kosData.daerah}</Text>
+          <Text style={{ marginTop: 5 }}>{kosData.keterangan}</Text>
         </View>
 
         {/* Gallery */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Gallery</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.gallery}>
-            <Image
-              source={{ uri: 'https://picsum.photos/200/300?random=2' }}
-              style={styles.galleryImage}
-            />
-            <Image
-              source={{ uri: 'https://picsum.photos/200/300?random=1' }}
-              style={styles.galleryImage}
-            />
-            <Image
-              source={{ uri: 'https://picsum.photos/200/300?random=3' }}
-              style={styles.galleryImage}
-            />
-            <Image
-              source={{ uri: 'https://picsum.photos/200/300?random=5' }}
-              style={styles.galleryImage}
-            />
-            <Image
-              source={{ uri: 'https://picsum.photos/200/300?random=9' }}
-              style={styles.galleryImage}
-            />
+            {hasRooms &&
+              kosData.kamar.map((room) =>
+                room.gallery && room.gallery.length > 0 ? (
+                  room.gallery.map((img: Gallery) => (
+                    <Image
+                      key={img.id}
+                      source={{ uri: BASE_URL + img.url }}
+                      style={styles.galleryImage}
+                    />
+                  ))
+                ) : (
+                  <Text
+                    key={`no-gallery-${room.id}`}
+                    style={{ color: '#666', marginRight: 10 }}
+                  ></Text>
+                ),
+              )}
+            {!hasRooms && <Text style={{ color: '#666' }}>Tidak ada gambar galeri tersedia.</Text>}
           </ScrollView>
         </View>
 
         {/* Fasilitas */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Fasilitas Bersama</Text>
-          <View style={styles.facilitiesRow}>
-            {['Kolam', 'Laundry', 'Wi-fi', 'Dapur'].map((f, idx) => (
-              <View key={idx} style={styles.facilityItem}>
-                <AntDesign name="tago" size={24} color="#999" />
-                <Text style={styles.facilityText}>{f}</Text>
-              </View>
-            ))}
-          </View>
-          <TouchableOpacity style={styles.seeMoreButton}>
+          <Text style={styles.sectionTitle}>Fasilitas Bersama (dari kamar pertama)</Text>
+          {firstRoom && firstRoom.fasilitas && firstRoom.fasilitas.length > 0 ? (
+            <View style={styles.facilitiesRow}>
+              {firstRoom.fasilitas.map((f: Fasilitas) => (
+                <View key={f.id} style={styles.facilityItem}>
+                  {/* Icon AntDesign "tago" mungkin tidak cocok untuk semua fasilitas.
+                      Anda mungkin perlu mapping nama fasilitas ke icon yang sesuai.
+                      Untuk saat ini, saya biarkan "tago".
+                  */}
+                  <AntDesign name="tagso" size={24} color="#999" />
+                  <Text style={styles.facilityText}>{f.nama}</Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={{ color: '#666' }}>Tidak ada fasilitas tersedia.</Text>
+          )}
+          {/* Tombol "See more" dari UI dummy, bisa diimplementasikan jika ada daftar fasilitas lengkap */}
+          {/* <TouchableOpacity style={styles.seeMoreButton}>
             <Text style={styles.seeMoreText}>See more</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         {/* Map */}
@@ -170,40 +232,61 @@ const DetailApartmentScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>Lokasi</Text>
           <MapView
             style={styles.map}
+            // Menggunakan koordinat default karena model tidak menyertakan lat/lng langsung
             initialRegion={{
-              latitude: -6.9915,
-              longitude: 110.4225,
+              latitude: DEFAULT_LATITUDE,
+              longitude: DEFAULT_LONGITUDE,
               latitudeDelta: 0.01,
               longitudeDelta: 0.01,
             }}
           >
             <Marker
-              coordinate={{ latitude: -6.9915, longitude: 110.4225 }}
-              title="Hilux Village"
-              description="Lokasi Apartemen"
+              coordinate={{ latitude: DEFAULT_LATITUDE, longitude: DEFAULT_LONGITUDE }}
+              title={kosData.nama}
+              description={kosData.alamat}
             />
           </MapView>
+          {kosData.link_maps ? (
+            <TouchableOpacity style={styles.openMapButton} onPress={openGoogleMaps}>
+              <Text style={styles.openMapButtonText}>Buka di Google Maps</Text>
+            </TouchableOpacity>
+          ) : (
+            <Text style={{ marginTop: 10, color: '#666' }}>Link Google Maps tidak tersedia.</Text>
+          )}
         </View>
 
         {/* Rooms */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Pilih kamar tersedia</Text>
-          {roomOptions.map((room) => (
-            <View key={room.id} style={styles.roomItem}>
-              <Image source={{ uri: room.image }} style={styles.roomImage} />
-              <View style={styles.roomDetails}>
-                <Text style={styles.roomTitle}>{room.title}</Text>
-                <Text style={styles.roomSubtitle}>{room.subtitle}</Text>
+          {hasRooms ? (
+            kosData.kamar.map((room: Kamar) => (
+              <View key={room.id} style={styles.roomItem}>
+                <Image
+                  source={{
+                    uri: BASE_URL + room.gallery?.[0]?.url || 'https://via.placeholder.com/100',
+                  }}
+                  style={styles.roomImage}
+                />
+                <View style={styles.roomDetails}>
+                  <Text style={styles.roomTitle}>{room.nama_kamar}</Text>
+                  <Text style={styles.roomSubtitle}>{room.tipe_kos}</Text>
+                </View>
+                <Text style={styles.roomPrice}>
+                  Rp{' '}
+                  {room.paket_harga?.perbulan_harga?.toLocaleString('id-ID') ||
+                    'Harga tidak tersedia'}
+                </Text>
               </View>
-              <Text style={styles.roomPrice}>{room.price}</Text>
-            </View>
-          ))}
+            ))
+          ) : (
+            <Text style={{ color: '#666' }}>Tidak ada kamar tersedia.</Text>
+          )}
         </View>
 
-        {/* Reviews */}
+        {/* Reviews (Menggunakan data dummy karena tidak ada di model DetailKosData Anda) */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Ulasan</Text>
-          {reviews.map((review) => (
+          {reviews.map((review: Review) => (
             <View key={review.id} style={styles.reviewItem}>
               <Image source={{ uri: review.profilePic }} style={styles.profilePic} />
               <View style={styles.reviewContent}>
@@ -218,19 +301,35 @@ const DetailApartmentScreen: React.FC = () => {
 
       {/* Floating Bottom Buttons */}
       <View style={{ flex: 1 }}>
-        {/* Floating Buttons */}
         <View style={[styles.floatingButtons, { bottom: insets.bottom }]}>
           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={styles.cardPrice}>Rp.500.000/</Text>
-            <Text style={styles.cardMonth}>Bulan</Text>
+            {firstRoom && firstRoom.paket_harga?.perbulan_harga ? (
+              <>
+                <Text style={styles.cardPrice}>
+                  Rp {firstRoom.paket_harga.perbulan_harga.toLocaleString('id-ID')}/
+                </Text>
+                <Text style={styles.cardMonth}>Bulan</Text>
+              </>
+            ) : (
+              <Text style={styles.cardPrice}>Harga tidak tersedia</Text>
+            )}
           </View>
-
-          <TouchableOpacity style={styles.button} onPress={() => setVisible(true)}>
-            <Text style={styles.buttonText}>Booking now</Text>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => {
+              if (!token) {
+                router.replace('/auth/login');
+              } else {
+                setVisible(true);
+              }
+            }}
+            disabled={!hasRooms || !firstRoom?.paket_harga?.perbulan_harga} // Disable jika tidak ada harga
+          >
+            <Text style={styles.buttonText}>Booking Now</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Bottom Dialog */}
+        {/* Modal Booking */}
         <Modal
           visible={visible}
           transparent
@@ -245,7 +344,6 @@ const DetailApartmentScreen: React.FC = () => {
             />
             <SafeAreaView style={styles.containerModal}>
               <Text style={styles.titleContainer}>Booking</Text>
-
               {/* Check In */}
               <TouchableOpacity style={styles.dateButton} onPress={toggleCheckIn}>
                 <Feather name="calendar" size={20} color="black" />
@@ -257,12 +355,9 @@ const DetailApartmentScreen: React.FC = () => {
                     setCheckIn(day.dateString);
                     setShowCheckIn(false);
                   }}
-                  markedDates={{
-                    [checkIn]: { selected: true, selectedColor: '#4CAF50' },
-                  }}
+                  markedDates={{ [checkIn]: { selected: true, selectedColor: '#4CAF50' } }}
                 />
               )}
-
               {/* Check Out */}
               <TouchableOpacity style={styles.dateButton} onPress={toggleCheckOut}>
                 <Feather name="calendar" size={20} color="black" />
@@ -274,13 +369,11 @@ const DetailApartmentScreen: React.FC = () => {
                     setCheckOut(day.dateString);
                     setShowCheckOut(false);
                   }}
-                  markedDates={{
-                    [checkOut]: { selected: true, selectedColor: '#4CAF50' },
-                  }}
+                  markedDates={{ [checkOut]: { selected: true, selectedColor: '#4CAF50' } }}
                 />
               )}
 
-              {/* Data Penghuni */}
+              {/* Data Penghuni (menggunakan nilai default dari UI dummy Anda) */}
               <View style={styles.form}>
                 <TextInput
                   style={styles.input}
@@ -295,10 +388,13 @@ const DetailApartmentScreen: React.FC = () => {
                 />
               </View>
 
-              {/* Total */}
-              <Text style={styles.total}>Total: Rp5.000.000,-</Text>
+              <Text style={styles.total}>
+                Total: Rp
+                {firstRoom && firstRoom.paket_harga?.perbulan_harga
+                  ? firstRoom.paket_harga.perbulan_harga.toLocaleString('id-ID')
+                  : 'Harga tidak tersedia'}
+              </Text>
 
-              {/* Konfirmasi */}
               <CustomButton
                 onPress={() => router.replace('/home/payment/payment')}
                 title="Booking Now"
@@ -366,13 +462,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   buttonText: {
-    width: 101,
-    height: 19,
     fontFamily: 'Raleway',
+    alignContent: 'center',
     fontSize: 16,
     fontWeight: '600',
     fontStyle: 'normal',
-    lineHeight: 16,
     color: '#FFFFFF',
   },
 
@@ -419,6 +513,17 @@ const styles = StyleSheet.create({
   seeMoreButton: { alignSelf: 'flex-start', marginTop: 10 },
   seeMoreText: { color: 'blue', fontSize: 14 },
   map: { width: '100%', height: 200, borderRadius: 10 },
+  openMapButton: {
+    marginTop: 10,
+    backgroundColor: '#4CAF50',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  openMapButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
   roomItem: {
     flexDirection: 'row',
     alignItems: 'center',
