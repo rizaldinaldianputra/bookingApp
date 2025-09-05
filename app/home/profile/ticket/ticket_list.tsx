@@ -1,7 +1,7 @@
 import CustomButton from '@/components/ui/button';
 import { useTicket } from '@/hooks/ticket';
 import { User } from '@/models/user';
-import { getUser } from '@/session/session';
+import { getUsers } from '@/service/user_service';
 import { formatDate } from '@/utils/date';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
@@ -71,8 +71,12 @@ export default function TicketList() {
 
   useEffect(() => {
     (async () => {
-      const data = await getUser();
-      setUser(data);
+      try {
+        const data = await getUsers();
+        setUser(data.user); // ambil user dari data.user
+      } catch (error) {
+        console.error(error);
+      }
     })();
   }, []);
 

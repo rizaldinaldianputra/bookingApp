@@ -1,5 +1,6 @@
+import CustomButton from '@/components/ui/button';
 import { User } from '@/models/user';
-import { getUser } from '@/session/session';
+import { getUsers } from '@/service/user_service';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -107,28 +108,40 @@ const renderRecommendedItem = ({ item }: { item: (typeof recommendedData)[0] }) 
 // Main Component
 export default function HomeScreen() {
   const [user, setUser] = useState<User | null>(null);
+
   useEffect(() => {
     (async () => {
-      const data = await getUser();
-      setUser(data);
+      try {
+        const data = await getUsers();
+        setUser(data.user); // ambil user dari data.user
+      } catch (error) {
+        console.error(error);
+      }
     })();
   }, []);
 
+  console.log(user?.status);
   return (
     <ScrollView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.greeting}> {user?.nama}</Text>
         <TouchableOpacity style={styles.notifButton}>
           <Icon name="notifications" size={24} color="#000" />
         </TouchableOpacity>
       </View>
-      <Text style={styles.subtitle}>
-        Akun mu belum diaktifasi, yuk aktivasi pada menu pengaturan
-      </Text>
+      {user?.status === 'inactive' && (
+        <View>
+          <Text style={styles.subtitle}>
+            Akun mu belum diaktifasi, yuk aktivasi pada menu pengaturan
+          </Text>
+          <CustomButton
+            onPress={() => router.push('/home/profile/profileuser/profileuser')}
+            title="Verifikasi"
+          />
+        </View>
+      )}
 
       {/* Search Input */}
-
       <View style={styles.searchContainer}>
         <TextInput style={styles.searchInput} placeholder="Search" placeholderTextColor="#1B563A" />
         <TouchableOpacity
@@ -138,7 +151,6 @@ export default function HomeScreen() {
           <Icon name="menu" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
-
       {/* Promo Section */}
       <Text style={styles.sectionTitle}>Promo</Text>
       <FlatList
@@ -150,7 +162,6 @@ export default function HomeScreen() {
         snapToInterval={width * 0.8 + 20}
         decelerationRate="fast"
       />
-
       {/* Near from you Section */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Near from you</Text>
@@ -163,7 +174,6 @@ export default function HomeScreen() {
         horizontal
         showsHorizontalScrollIndicator={false}
       />
-
       {/* Recommended for you Section */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Recommended for you</Text>
@@ -176,7 +186,6 @@ export default function HomeScreen() {
         horizontal
         showsHorizontalScrollIndicator={false}
       />
-
       <View style={{ height: 100 }} />
     </ScrollView>
   );

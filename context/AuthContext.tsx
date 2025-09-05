@@ -1,5 +1,5 @@
 import { User } from '@/models/user';
-import { getToken, getUser, removeToken, removeUser, saveToken, saveUser } from '@/session/session';
+import { getToken, removeToken, removeUser, saveToken, saveUser } from '@/session/session';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
 interface AuthContextType {
@@ -22,9 +22,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const loadSession = async () => {
       const savedToken = await getToken();
-      const savedUser = await getUser();
       if (savedToken) setToken(savedToken);
-      if (savedUser) setUser(savedUser);
       setLoading(false);
     };
     loadSession();

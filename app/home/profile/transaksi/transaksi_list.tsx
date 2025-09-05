@@ -1,6 +1,6 @@
 import { useTransaksi } from '@/hooks/transaksi';
 import { User } from '@/models/user';
-import { getUser } from '@/session/session';
+import { getUsers } from '@/service/user_service';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
@@ -69,8 +69,12 @@ export default function TransaksiList() {
 
   useEffect(() => {
     (async () => {
-      const data = await getUser();
-      setUser(data);
+      try {
+        const data = await getUsers();
+        setUser(data.user); // ambil user dari data.user
+      } catch (error) {
+        console.error(error);
+      }
     })();
   }, []);
 

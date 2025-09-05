@@ -22,6 +22,7 @@ export default function RootLayout() {
               'home/profile/ticket/ticket_list',
               'home/profile/ticket/ticket_detail',
               'home/profile/ticket/ticket_submit',
+              'home/profile/profileuser/profileuser',
             ];
             return {
               headerShown: !hideHeaderScreens.includes(route.name),

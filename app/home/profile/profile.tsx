@@ -1,7 +1,7 @@
 import { BASE_URL } from '@/constants/config';
 import { useAuth } from '@/context/AuthContext';
 import { User } from '@/models/user';
-import { getUser } from '@/session/session';
+import { getUsers } from '@/service/user_service';
 import { useRouter } from 'expo-router'; // gunakan hook ini
 import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -15,8 +15,12 @@ const ProfileScreen = () => {
 
   useEffect(() => {
     (async () => {
-      const data = await getUser();
-      setUser(data);
+      try {
+        const data = await getUsers();
+        setUser(data.user); // ambil user dari data.user
+      } catch (error) {
+        console.error(error);
+      }
     })();
   }, []);
 
@@ -47,7 +51,10 @@ const ProfileScreen = () => {
 
       {/* Menu Options */}
       <View style={styles.menuContainer}>
-        <TouchableOpacity style={styles.menuItem}>
+        <TouchableOpacity
+          onPress={() => router.push('/home/profile/profileuser/profileuser')}
+          style={styles.menuItem}
+        >
           <Feather name="user" size={24} color="#4CAF50" />
           <Text style={styles.menuItemText}>Edit Profile</Text>
         </TouchableOpacity>
