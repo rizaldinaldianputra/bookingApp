@@ -7,7 +7,7 @@ import { appleLogin, googleLogin, login } from '../service/auth_service';
 export default function AuthHook() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const { login: saveLogin } = useAuth(); // ambil login dari context
+  const { login: saveLogin } = useAuth();
 
   const handleLogin = async (email: string, password: string): Promise<LoginResponse> => {
     setLoading(true);
@@ -20,12 +20,14 @@ export default function AuthHook() {
 
       // pindah ke home
       router.replace('/home/main');
+
+      // tahan loading sebentar biar indikator masih muncul sampai perpindahan
+      setTimeout(() => setLoading(false), 500);
       return res;
     } catch (err: any) {
       setError(err);
-      throw err;
-    } finally {
       setLoading(false);
+      throw err;
     }
   };
 
@@ -35,12 +37,13 @@ export default function AuthHook() {
     try {
       const res = await googleLogin(email, password);
       await saveLogin(res.token, res.user);
+      router.replace('/home/main');
+      setTimeout(() => setLoading(false), 500);
       return res;
     } catch (err: any) {
       setError(err);
-      throw err;
-    } finally {
       setLoading(false);
+      throw err;
     }
   };
 
@@ -50,12 +53,13 @@ export default function AuthHook() {
     try {
       const res = await appleLogin(email, password);
       await saveLogin(res.token, res.user);
+      router.replace('/home/main');
+      setTimeout(() => setLoading(false), 500);
       return res;
     } catch (err: any) {
       setError(err);
-      throw err;
-    } finally {
       setLoading(false);
+      throw err;
     }
   };
 

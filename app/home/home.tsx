@@ -1,4 +1,5 @@
 import CustomButton from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
 import { User } from '@/models/user';
 import { getUsers } from '@/service/user_service';
 import { router } from 'expo-router';
@@ -89,7 +90,7 @@ const renderNearYouItem = ({ item }: { item: (typeof nearYouData)[0] }) => (
 
 // Render Item for Recommended section
 const handleCardPress = (itemId: string) => {
-  router.push(`/home/product/detail`);
+  router.push(`/home/kossan/detail`);
 };
 
 const renderRecommendedItem = ({ item }: { item: (typeof recommendedData)[0] }) => (
@@ -107,27 +108,32 @@ const renderRecommendedItem = ({ item }: { item: (typeof recommendedData)[0] }) 
 
 // Main Component
 const HomeScreen = ({ navigation }: any) => {
+  const { token } = useAuth();
+
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
+    if (!token) return;
+
     (async () => {
       try {
         const data = await getUsers();
-        setUser(data.user); // ambil user dari data.user
+        setUser(data.user);
       } catch (error) {
         console.error(error);
       }
     })();
-  }, []);
+  }, [token]); // jalankan ulang kalau token berubah
 
-  console.log(user?.status);
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.greeting}> {user?.nama}</Text>
-        <TouchableOpacity style={styles.notifButton}>
-          <Icon name="notifications" size={24} color="#000" />
-        </TouchableOpacity>
+        {token && (
+          <TouchableOpacity style={styles.notifButton}>
+            <Icon name="notifications" size={24} color="#000" />
+          </TouchableOpacity>
+        )}
       </View>
       {user?.status === 'inactive' && (
         <View>

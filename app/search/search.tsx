@@ -23,7 +23,7 @@ import { getFasilitas } from '../../service/fasilitas_service';
 import { getLokasi } from '../../service/lokasi_service';
 
 import { BASE_URL } from '@/constants/config';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import DateTimePickerModal from 'react-native-modal-datetime-picker'; // Ubah import ini
 import { KamarResponse as ApiKamarResponse, Kamar } from '../../models/kossan';
 import { getKos } from '../../service/kossan_service';
@@ -68,7 +68,7 @@ const renderRecommendedItem = ({ item }: { item: Kamar }) => {
       : 'https://via.placeholder.com/100';
 
   return (
-    <TouchableOpacity onPress={() => router.push(`/home/product/detail?id=${item.id}`)}>
+    <TouchableOpacity onPress={() => router.push(`/home/kossan/detail?id=${item.id}`)}>
       <View style={styles.recommendedCard}>
         <Image source={{ uri: imageUrl }} style={styles.recommendedImage} />
         <View style={styles.recommendedDetails}>
@@ -489,13 +489,15 @@ export default function App() {
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     ) : null;
+  const navigation = useNavigation();
 
   return (
     <View style={styles.fullScreenContainer}>
       <View style={styles.searchHeader}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
           <Icon name="arrow-back" size={24} color="#1F2937" />
         </TouchableOpacity>
+
         <Text style={styles.headerTitle}>Search</Text>
         <View style={{ width: 24 }} />
       </View>

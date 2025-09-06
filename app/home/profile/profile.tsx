@@ -2,7 +2,7 @@ import { BASE_URL } from '@/constants/config';
 import { useAuth } from '@/context/AuthContext';
 import { User } from '@/models/user';
 import { getUsers } from '@/service/user_service';
-import { useRouter } from 'expo-router'; // gunakan hook ini
+import { useNavigation, useRouter } from 'expo-router'; // gunakan hook ini
 import React, { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
@@ -23,12 +23,13 @@ const ProfileScreen = () => {
       }
     })();
   }, []);
+  const navigation = useNavigation();
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerText}>Akun Saya</Text>

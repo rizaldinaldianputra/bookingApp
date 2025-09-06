@@ -2,6 +2,7 @@ import CheckBox from 'expo-checkbox';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   BackHandler,
   Image,
   StyleSheet,
@@ -18,16 +19,13 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
+
   useEffect(() => {
-    const backAction = () => {
-      // blok tombol back agar tidak balik ke home
-      return true;
-    };
-
+    const backAction = () => true;
     const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
-
     return () => backHandler.remove();
   }, []);
+
   const { handleLogin, handleLoginGoogle, handleLoginApple, loading, error } = useAuthHook();
 
   return (
@@ -60,8 +58,16 @@ export default function LoginScreen() {
         <Text style={styles.rememberText}>Remember me</Text>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={() => handleLogin(email, password)}>
-        <Text style={styles.buttonText}>Sign In</Text>
+      <TouchableOpacity
+        style={[styles.button, loading && { opacity: 0.7 }]}
+        onPress={() => handleLogin(email, password)}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator size="small" color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Sign In</Text>
+        )}
       </TouchableOpacity>
 
       <View style={styles.separatorContainer}>
@@ -73,13 +79,15 @@ export default function LoginScreen() {
       <View style={styles.socialContainer}>
         <TouchableOpacity
           style={styles.socialButton}
-          onPress={() => handleLoginApple(email, password)}
+          onPress={() => handleLoginGoogle(email, password)}
+          disabled={loading}
         >
           <Image source={require('../../assets/images/google.png')} style={styles.socialIcon} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.socialButton}
           onPress={() => handleLoginApple(email, password)}
+          disabled={loading}
         >
           <Image source={require('../../assets/images/apple.png')} style={styles.socialIcon} />
         </TouchableOpacity>
@@ -87,7 +95,7 @@ export default function LoginScreen() {
 
       <View style={styles.signupContainer}>
         <Text style={styles.signupText}>Already have an account? </Text>
-        <TouchableOpacity onPress={() => router.push('../auth/signup')}>
+        <TouchableOpacity onPress={() => router.push('../auth/signup')} disabled={loading}>
           <Text style={styles.signupLink}>Sign Up</Text>
         </TouchableOpacity>
       </View>
