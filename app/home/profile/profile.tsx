@@ -62,12 +62,15 @@ const ProfileScreen = () => {
           onPress={() => router.push('/home/profile/transaksi/transaksi_list')}
           style={styles.menuItem}
         >
-          <Feather name="bookmark" size={24} color="#000" />
+          <Feather name="file-text" size={24} color="#000" />
           <Text style={styles.menuItemText}>Transaksi Saya</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.menuItem}>
-          <Feather name="bookmark" size={24} color="#000" />
-          <Text style={styles.menuItemText}>Tagihan Saya</Text>
+        <TouchableOpacity
+          style={styles.menuItem}
+          onPress={() => router.push('/home/profile/pembelian/pembelian_list')}
+        >
+          <Feather name="shopping-cart" size={24} color="#000" />
+          <Text style={styles.menuItemText}>Pembelian Saya</Text>
         </TouchableOpacity>
         <TouchableOpacity
           onPress={() => router.push('/home/profile/ticket/ticket_list')}

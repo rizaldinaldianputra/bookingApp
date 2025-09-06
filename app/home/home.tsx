@@ -106,7 +106,7 @@ const renderRecommendedItem = ({ item }: { item: (typeof recommendedData)[0] }) 
 );
 
 // Main Component
-export default function HomeScreen() {
+const HomeScreen = ({ navigation }: any) => {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -140,17 +140,23 @@ export default function HomeScreen() {
           />
         </View>
       )}
+      <TouchableOpacity onPress={() => navigation.navigate('Search')}>
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            readOnly={true}
+            placeholder="Search"
+            placeholderTextColor="#1B563A"
+          />
+          <TouchableOpacity
+            style={styles.filterButton}
+            onPress={() => navigation.navigate('Search')} // pindah ke tab Search
+          >
+            <Icon name="menu" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
 
-      {/* Search Input */}
-      <View style={styles.searchContainer}>
-        <TextInput style={styles.searchInput} placeholder="Search" placeholderTextColor="#1B563A" />
-        <TouchableOpacity
-          style={styles.filterButton}
-          onPress={() => router.push('/search/search')} // pindah ke tab Search
-        >
-          <Icon name="menu" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
       {/* Promo Section */}
       <Text style={styles.sectionTitle}>Promo</Text>
       <FlatList
@@ -189,7 +195,7 @@ export default function HomeScreen() {
       <View style={{ height: 100 }} />
     </ScrollView>
   );
-}
+};
 
 // Styles
 const styles = StyleSheet.create({
@@ -296,3 +302,4 @@ const styles = StyleSheet.create({
   cardDetails: { fontSize: 12, color: '#6B7280', marginVertical: 2 },
   cardPrice: { fontSize: 14, fontWeight: 'bold', color: '#0f172a' },
 });
+export default HomeScreen; // ✅ harus ada default export

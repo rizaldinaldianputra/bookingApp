@@ -22,7 +22,10 @@ export default function RootLayout() {
               'home/profile/ticket/ticket_list',
               'home/profile/ticket/ticket_detail',
               'home/profile/ticket/ticket_submit',
+              'search/search',
               'home/profile/profileuser/profileuser',
+              'home/profile/pembelian/pembelian_list',
+              'home/profile/pembelian/pembelian_detail',
             ];
             return {
               headerShown: !hideHeaderScreens.includes(route.name),

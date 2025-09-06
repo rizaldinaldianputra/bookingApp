@@ -24,6 +24,7 @@ import { getLokasi } from '../../service/lokasi_service';
 
 import { BASE_URL } from '@/constants/config';
 import { router } from 'expo-router';
+import DateTimePickerModal from 'react-native-modal-datetime-picker'; // Ubah import ini
 import { KamarResponse as ApiKamarResponse, Kamar } from '../../models/kossan';
 import { getKos } from '../../service/kossan_service';
 
@@ -35,6 +36,8 @@ interface FilterState {
   minPrice: number;
   maxPrice: number;
   search: string;
+  checkInDate: string | null; // Tambah checkInDate
+  checkOutDate: string | null; // Tambah checkOutDate
 }
 
 const { width } = Dimensions.get('window');
@@ -61,7 +64,7 @@ const renderRecommendedItem = ({ item }: { item: Kamar }) => {
   const displayedPrice = item.paket_harga?.perbulan_harga || 0;
   const imageUrl =
     item.gallery && item.gallery.length > 0
-      ? `${BASE_URL}${item.gallery[0].url}` // pakai url bukan nama_file
+      ? `${BASE_URL}${item.gallery[0].url}`
       : 'https://via.placeholder.com/100';
 
   return (
@@ -112,6 +115,11 @@ const FilterModal = ({ isVisible, onClose, onApplyFilter, initialFilters }: Filt
   const [selectedGender, setSelectedGender] = useState(initialFilters.gender);
   const [selectedFacilities, setSelectedFacilities] = useState<string[]>(initialFilters.facilities);
   const [range, setRange] = useState([initialFilters.minPrice, initialFilters.maxPrice]);
+  const [checkInDate, setCheckInDate] = useState<string | null>(initialFilters.checkInDate);
+  const [checkOutDate, setCheckOutDate] = useState<string | null>(initialFilters.checkOutDate);
+
+  const [isCheckInPickerVisible, setIsCheckInPickerVisible] = useState(false);
+  const [isCheckOutPickerVisible, setIsCheckOutPickerVisible] = useState(false);
 
   useEffect(() => {
     setSelectedLocation(initialFilters.location);
@@ -119,6 +127,8 @@ const FilterModal = ({ isVisible, onClose, onApplyFilter, initialFilters }: Filt
     setSelectedGender(initialFilters.gender);
     setSelectedFacilities(initialFilters.facilities);
     setRange([initialFilters.minPrice, initialFilters.maxPrice]);
+    setCheckInDate(initialFilters.checkInDate);
+    setCheckOutDate(initialFilters.checkOutDate);
 
     const fetchData = async () => {
       try {
@@ -148,6 +158,8 @@ const FilterModal = ({ isVisible, onClose, onApplyFilter, initialFilters }: Filt
     setSelectedGender('');
     setSelectedFacilities([]);
     setRange([0, 10000000]);
+    setCheckInDate(null);
+    setCheckOutDate(null);
   };
 
   const handleApply = () => {
@@ -159,8 +171,32 @@ const FilterModal = ({ isVisible, onClose, onApplyFilter, initialFilters }: Filt
       minPrice: range[0],
       maxPrice: range[1],
       search: initialFilters.search,
+      checkInDate: checkInDate,
+      checkOutDate: checkOutDate,
     });
     onClose();
+  };
+
+  const today = new Date();
+
+  // Handler untuk DatePicker Check-in
+  const handleConfirmCheckIn = (date: Date) => {
+    setCheckInDate(date.toISOString().split('T')[0]);
+    setIsCheckInPickerVisible(false);
+  };
+
+  // Handler untuk DatePicker Check-out
+  const handleConfirmCheckOut = (date: Date) => {
+    setCheckOutDate(date.toISOString().split('T')[0]);
+    setIsCheckOutPickerVisible(false);
+  };
+
+  const hideCheckInPicker = () => {
+    setIsCheckInPickerVisible(false);
+  };
+
+  const hideCheckOutPicker = () => {
+    setIsCheckOutPickerVisible(false);
   };
 
   return (
@@ -169,7 +205,47 @@ const FilterModal = ({ isVisible, onClose, onApplyFilter, initialFilters }: Filt
         <View style={styles.modalContent}>
           <ScrollView contentContainerStyle={{ paddingVertical: 10 }}>
             <Text style={styles.modalTitle}>Filter</Text>
+            <Text style={styles.filterSectionTitle}>Tanggal Check-in</Text>
+            <TouchableOpacity
+              style={styles.dateInputContainer}
+              onPress={() => setIsCheckInPickerVisible(true)}
+            >
+              <Text style={styles.dateInputText}>
+                {checkInDate ? checkInDate : 'Pilih Tanggal Check-in'}
+              </Text>
+              <Icon name="calendar-outline" size={20} color="#9CA3AF" />
+            </TouchableOpacity>
 
+            <Text style={styles.filterSectionTitle}>Tanggal Check-out</Text>
+            <TouchableOpacity
+              style={styles.dateInputContainer}
+              onPress={() => setIsCheckOutPickerVisible(true)}
+            >
+              <Text style={styles.dateInputText}>
+                {checkOutDate ? checkOutDate : 'Pilih Tanggal Check-out'}
+              </Text>
+              <Icon name="calendar-outline" size={20} color="#9CA3AF" />
+            </TouchableOpacity>
+
+            <DateTimePickerModal
+              isVisible={isCheckOutPickerVisible}
+              mode="date"
+              onConfirm={handleConfirmCheckOut}
+              onCancel={hideCheckOutPicker}
+              minimumDate={checkInDate ? new Date(checkInDate) : today}
+              date={
+                checkOutDate ? new Date(checkOutDate) : checkInDate ? new Date(checkInDate) : today
+              }
+            />
+
+            <DateTimePickerModal
+              isVisible={isCheckInPickerVisible}
+              mode="date"
+              onConfirm={handleConfirmCheckIn}
+              onCancel={hideCheckInPicker}
+              minimumDate={today}
+              date={checkInDate ? new Date(checkInDate) : today}
+            />
             <Text style={styles.filterSectionTitle}>Lokasi</Text>
             <View style={styles.filterChipContainer}>
               {lokasi.map((loc) => (
@@ -290,6 +366,8 @@ export default function App() {
     minPrice: 0,
     maxPrice: 10000000,
     search: '',
+    checkInDate: null,
+    checkOutDate: null,
   });
 
   const [kosData, setKosData] = useState<Kamar[]>([]);
@@ -312,6 +390,8 @@ export default function App() {
         if (filters.facilities.length > 0) params.fasilitas = JSON.stringify(filters.facilities);
         if (filters.minPrice > 0) params.min_harga = filters.minPrice;
         if (filters.maxPrice < 10000000) params.max_harga = filters.maxPrice;
+        if (filters.checkInDate) params.start_date = filters.checkInDate; // Tambah parameter check-in
+        if (filters.checkOutDate) params.end_date = filters.checkOutDate; // Tambah parameter check-out
 
         const response: ApiKamarResponse = await getKos(params);
 
@@ -365,6 +445,8 @@ export default function App() {
     if (activeFilters.location) labels.push(activeFilters.location);
     if (activeFilters.time) labels.push(activeFilters.time);
     if (activeFilters.gender) labels.push(activeFilters.gender);
+    if (activeFilters.checkInDate) labels.push(`Check-in: ${activeFilters.checkInDate}`);
+    if (activeFilters.checkOutDate) labels.push(`Check-out: ${activeFilters.checkOutDate}`);
     activeFilters.facilities.forEach((facility) => labels.push(facility));
     if (activeFilters.minPrice > 0 || activeFilters.maxPrice < 10000000) {
       labels.push(
@@ -383,6 +465,8 @@ export default function App() {
       if (newFilters.location === labelToRemove) newFilters.location = '';
       else if (newFilters.time === labelToRemove) newFilters.time = '';
       else if (newFilters.gender === labelToRemove) newFilters.gender = '';
+      else if (labelToRemove.startsWith('Check-in: ')) newFilters.checkInDate = null;
+      else if (labelToRemove.startsWith('Check-out: ')) newFilters.checkOutDate = null;
       else if (labelToRemove.startsWith('Rp ') && labelToRemove.includes(' - Rp ')) {
         newFilters.minPrice = 0;
         newFilters.maxPrice = 10000000;
@@ -665,4 +749,63 @@ const styles = StyleSheet.create({
   listContentContainer: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 },
   footerLoader: { paddingVertical: 20, alignItems: 'center' },
   emptyText: { textAlign: 'center', marginTop: 50, fontSize: 16, color: '#9CA3AF' },
+  // Styles for DatePicker
+  dateInputContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 15,
+    height: 48,
+    marginHorizontal: 20,
+    marginTop: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  dateInputText: {
+    color: '#1F2937',
+    flex: 1,
+  },
+  centeredView: {
+    // Ini tidak lagi diperlukan untuk DateTimePickerModal
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  datePickerModalView: {
+    // Ini tidak lagi diperlukan untuk DateTimePickerModal
+    margin: 20,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    width: '90%',
+    padding: 15,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  closeDatePickerButton: {
+    // Ini tidak lagi diperlukan untuk DateTimePickerModal
+    marginTop: 15,
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    padding: 10,
+    elevation: 2,
+  },
+  closeDatePickerButtonText: {
+    // Ini tidak lagi diperlukan untuk DateTimePickerModal
+    color: 'white',
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
 });
