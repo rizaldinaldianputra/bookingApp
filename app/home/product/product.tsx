@@ -26,11 +26,15 @@ const renderProductItem = ({ item }: { item: KatalogProduct }) => {
   const displayedPrice = parseFloat(item.harga || '0');
   const imageUrl =
     item.gambar && item.gambar.length > 0
-      ? `${BASE_URL}${item.gambar[0].url_gambar}`
+      ? `${BASE_URL}/${item.gambar[0].url_gambar}`
       : 'https://via.placeholder.com/100';
 
+  console.log(imageUrl);
+
   return (
-    <TouchableOpacity onPress={() => router.push(`/home/kossan/detail?id=${item.id_produk}`)}>
+    <TouchableOpacity
+      onPress={() => router.push(`/home/product/product_detail?id=${item.id_produk}`)}
+    >
       <View style={styles.productCard}>
         <Image source={{ uri: imageUrl }} style={styles.productImage} />
         <View style={styles.productDetails}>
