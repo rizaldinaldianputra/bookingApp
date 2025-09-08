@@ -13,7 +13,6 @@ export default function RootLayout() {
           swipeEnabled={true}
           duration={3000}
         >
-          {' '}
           <Stack
             screenOptions={({ route }) => {
               const hideHeaderScreens = [

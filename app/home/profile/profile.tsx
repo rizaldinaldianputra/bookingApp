@@ -39,7 +39,7 @@ const ProfileScreen = () => {
       <View style={styles.profileInfo}>
         <Image
           source={{
-            uri: BASE_URL + user?.fotoselfie,
+            uri: BASE_URL + '/' + user?.fotoselfie,
           }}
           style={styles.profileImage}
         />

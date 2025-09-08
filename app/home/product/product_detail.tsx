@@ -1,11 +1,14 @@
 import { colors } from '@/constants/colors';
 import { KatalogProductById } from '@/models/katalogproductbyid';
+import { User } from '@/models/user';
 import { getProductById, postTransaksiProduct } from '@/service/product_service';
+import { getUsers } from '@/service/user_service';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
   Image,
@@ -24,11 +27,21 @@ export default function DetailProductScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const toast = useToast();
-
+  const [isLoading, setIsLoading] = useState(false);
   const [product, setProduct] = useState<KatalogProductById | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
-
+  const [user, setUser] = useState<User | null>(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await getUsers();
+        setUser(data.user);
+      } catch (error) {
+        console.error(error);
+      }
+    })();
+  }, []);
   useEffect(() => {
     if (id) {
       getProductById(id).then((res) => {
@@ -42,11 +55,33 @@ export default function DetailProductScreen() {
 
   if (!product) {
     return (
-      <View style={styles.center}>
-        <Text>Loading...</Text>
+      <View style={[styles.center, { flex: 1, backgroundColor: '#fff' }]}>
+        <ActivityIndicator size="large" color="#0f172a" />
       </View>
     );
   }
+
+  const now = new Date();
+
+  // Format: "YYYY-MM-DD HH:mm:ss"
+  const formatDateTime = (date: Date) => {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return (
+      date.getFullYear() +
+      '-' +
+      pad(date.getMonth() + 1) +
+      '-' +
+      pad(date.getDate()) +
+      ' ' +
+      pad(date.getHours()) +
+      ':' +
+      pad(date.getMinutes()) +
+      ':' +
+      pad(date.getSeconds())
+    );
+  };
+
+  const tanggalTransaksi = formatDateTime(now);
 
   const increaseQty = () => setQuantity((prev) => prev + 1);
   const decreaseQty = () => setQuantity((prev) => (prev > 1 ? prev - 1 : 1));
@@ -136,14 +171,18 @@ export default function DetailProductScreen() {
         <View style={styles.bottomButtons}>
           <TouchableOpacity
             onPress={async () => {
+              const hargaSatuan = Number(product.harga);
+              const id = Number(user?.id);
+              setIsLoading(true); // mulai loading
+
               try {
                 const response = await postTransaksiProduct({
-                  id_user: 1,
-                  id_produk: 1,
-                  jumlah: 3,
-                  harga_satuan: 75000,
-                  subtotal: 225000,
-                  tanggal_transaksi: '2025-08-26 14:35:00',
+                  id_user: id,
+                  id_produk: product.id_produk,
+                  jumlah: quantity,
+                  harga_satuan: hargaSatuan,
+                  subtotal: hargaSatuan * quantity,
+                  tanggal_transaksi: tanggalTransaksi,
                   status: 'belum_lunas',
                 });
 
@@ -162,11 +201,18 @@ export default function DetailProductScreen() {
                   type: 'danger',
                   placement: 'bottom',
                 });
+              } finally {
+                setIsLoading(false); // selesai loading
               }
             }}
             style={styles.buyNow}
+            disabled={isLoading} // optional: disable tombol saat loading
           >
-            <Text style={styles.buyNowText}>Buy now</Text>
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.buyNowText}>Buy now</Text>
+            )}
           </TouchableOpacity>
         </View>
       </SafeAreaView>

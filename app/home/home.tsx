@@ -100,7 +100,7 @@ const renderRecommendedItem = ({ item }: { item: (typeof recommendedData)[0] }) 
       <View style={styles.recommendedDetails}>
         <Text style={styles.cardTitle}>{item.name}</Text>
         <Text style={styles.cardDetails}>{item.details}</Text>
-        <Text style={styles.cardPrice}>{item.price}/Month</Text>
+        <Text style={styles.cardPrice}>{`${item.price}/Month`}</Text>
       </View>
     </View>
   </TouchableOpacity>
@@ -128,7 +128,7 @@ const HomeScreen = ({ navigation }: any) => {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.greeting}> {user?.nama}</Text>
+        <Text style={styles.greeting}>{user?.nama || ''}</Text>
         {token && (
           <TouchableOpacity style={styles.notifButton}>
             <Icon name="notifications" size={24} color="#000" />

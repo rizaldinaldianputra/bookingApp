@@ -1,12 +1,15 @@
 import CustomButton from '@/components/ui/button';
 import { colors } from '@/constants/colors';
+import { BASE_URL } from '@/constants/config';
 import { useAuth } from '@/context/AuthContext';
+import { User } from '@/models/user';
+import { getUsers } from '@/service/user_service';
 import { AntDesign, Feather } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router'; // Import useLocalSearchParams
-import React, { useEffect, useState } from 'react'; // Import useEffect
+import { router, useLocalSearchParams } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Image, // Tambahkan ini untuk indikator loading
+  Image,
   Linking,
   Modal,
   ScrollView,
@@ -14,51 +17,48 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  TouchableWithoutFeedback,
   View,
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import MapView, { Marker } from 'react-native-maps';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-
-// Import model yang sudah Anda berikan
-import { DetailKosData, Fasilitas, Gallery, Kamar } from '../../../models/detail_kossan';
-// Import service yang sudah Anda berikan
-import { BASE_URL } from '@/constants/config';
+import {
+  DetailKosData,
+  Fasilitas,
+  Gallery,
+  Kamar,
+  PaketHarga,
+} from '../../../models/detail_kossan';
 import { getKosById } from '../../../service/kossan_service';
-
-// Data dummy untuk reviews (karena tidak ada di DetailKosData Anda)
-type Review = {
-  id: string;
-  name: string;
-  date: string;
-  rating: number;
-  text: string;
-  profilePic: string;
-};
-
-const reviews: Review[] = [
-  {
-    id: '1',
-    name: 'Jennifer Lucia',
-    date: 'Dec 16, 2012',
-    rating: 5,
-    text: 'Kosnya bersih dan nyaman, fasilitas lengkap!',
-    profilePic: 'https://randomuser.me/api/portraits/women/1.jpg',
-  },
-  {
-    id: '2',
-    name: 'Budi Santoso',
-    date: 'Jan 05, 2013',
-    rating: 4,
-    text: 'Lokasi strategis, pemilik kos ramah.',
-    profilePic: 'https://randomuser.me/api/portraits/men/2.jpg',
-  },
-];
 
 const DetailApartmentScreen: React.FC = () => {
   const { token } = useAuth();
-  const { id } = useLocalSearchParams<{ id: string }>(); // Ambil ID dari URL params
+  const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
+  const [user, setUser] = useState<User | null>(null);
+  const [selectedPaket, setSelectedPaket] = useState<keyof PaketHarga | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    (async () => {
+      try {
+        const data = await getUsers();
+        setUser(data.user);
+      } catch (error) {
+        console.error(error);
+      }
+    })();
+  }, [token]);
+
+  // mapping key ke label
+  const paketLabels: Record<string, string> = {
+    perharian_harga: '1 Hari',
+    perbulan_harga: '1 Bulan',
+    pertigabulan_harga: '3 Bulan',
+    perenambulan_harga: '6 Bulan',
+    pertahun_harga: '1 Tahun',
+  };
 
   const [kosData, setKosData] = useState<DetailKosData | null>(null);
   const [visible, setVisible] = useState(false);
@@ -66,36 +66,22 @@ const DetailApartmentScreen: React.FC = () => {
   const [showCheckOut, setShowCheckOut] = useState(false);
   const [checkIn, setCheckIn] = useState('');
   const [checkOut, setCheckOut] = useState('');
-  const [isLoading, setIsLoading] = useState(true); // State untuk mengelola loading
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Default coordinate jika tidak ada di data kos (sesuai model Anda)
   const DEFAULT_LATITUDE = -6.9915;
   const DEFAULT_LONGITUDE = 110.4225;
 
   useEffect(() => {
     if (!id) {
-      console.warn('DEBUGGING: ID is missing, cannot fetch kos data.');
-      setIsLoading(false); // Pastikan loading berhenti jika ID tidak ada
+      setIsLoading(false);
       return;
     }
-
-    setIsLoading(true); // Mulai loading
-    console.log('DEBUGGING: Fetching kos data for ID:', id);
+    setIsLoading(true);
     getKosById(String(id))
-      .then((res) => {
-        console.log('DEBUGGING: Kos data fetched successfully.');
-        // console.log('DEBUGGING: Fetched Data:', JSON.stringify(res.data, null, 2)); // Log data lengkap
-        setKosData(res.data); // res.data bertipe DetailKosData
-      })
-      .catch((err) => {
-        console.error('DEBUGGING: Error fetching kos data:', err);
-        // Tampilkan pesan error ke user jika perlu
-      })
-      .finally(() => {
-        setIsLoading(false); // Selesai loading, baik sukses maupun gagal
-        console.log('DEBUGGING: Fetching process finished.');
-      });
-  }, [id]); // Dependensi ID agar re-fetch jika ID berubah
+      .then((res) => setKosData(res.data))
+      .catch((err) => console.error(err))
+      .finally(() => setIsLoading(false));
+  }, [id]);
 
   const toggleCheckIn = () => {
     setShowCheckIn(!showCheckIn);
@@ -109,17 +95,11 @@ const DetailApartmentScreen: React.FC = () => {
 
   const openGoogleMaps = () => {
     if (kosData?.link_maps) {
-      Linking.openURL(kosData.link_maps).catch((err) =>
-        console.error("DEBUGGING: Couldn't open URL:", err),
-      );
-    } else {
-      console.warn('DEBUGGING: Link maps not available.');
+      Linking.openURL(kosData.link_maps).catch((err) => console.error("Couldn't open URL:", err));
     }
   };
 
-  // Tampilkan loading state
   if (isLoading) {
-    console.log('DEBUGGING: Displaying loading screen.');
     return (
       <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -128,9 +108,7 @@ const DetailApartmentScreen: React.FC = () => {
     );
   }
 
-  // Jika data sudah selesai di-fetch tapi kosData masih null (misal: ID tidak valid, atau API return null)
   if (!kosData) {
-    console.log('DEBUGGING: Data fetching finished, but kosData is null. Showing "No data".');
     return (
       <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <Text>Tidak ada data kos ditemukan.</Text>
@@ -139,11 +117,8 @@ const DetailApartmentScreen: React.FC = () => {
     );
   }
 
-  // Pastikan ada kamar sebelum mengakses kamar[0]
   const hasRooms = kosData.kamar && kosData.kamar.length > 0;
   const firstRoom = hasRooms ? kosData.kamar[0] : null;
-
-  console.log('DEBUGGING: Rendering DetailApartmentScreen with kosData:', kosData.nama);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#f5f5f5' }}>
@@ -155,7 +130,7 @@ const DetailApartmentScreen: React.FC = () => {
               uri:
                 firstRoom && firstRoom.gallery && firstRoom.gallery.length > 0
                   ? BASE_URL + firstRoom.gallery[0].url
-                  : 'https://via.placeholder.com/300', // Gambar placeholder
+                  : 'https://via.placeholder.com/300',
             }}
             style={styles.mainImage}
           />
@@ -204,15 +179,11 @@ const DetailApartmentScreen: React.FC = () => {
 
         {/* Fasilitas */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Fasilitas Bersama (dari kamar pertama)</Text>
+          <Text style={styles.sectionTitle}>Fasilitas</Text>
           {firstRoom && firstRoom.fasilitas && firstRoom.fasilitas.length > 0 ? (
-            <View style={styles.facilitiesRow}>
+            <View style={styles.facilitiesGrid}>
               {firstRoom.fasilitas.map((f: Fasilitas) => (
-                <View key={f.id} style={styles.facilityItem}>
-                  {/* Icon AntDesign "tago" mungkin tidak cocok untuk semua fasilitas.
-                      Anda mungkin perlu mapping nama fasilitas ke icon yang sesuai.
-                      Untuk saat ini, saya biarkan "tago".
-                  */}
+                <View key={f.id} style={styles.facilityGridItem}>
                   <AntDesign name="tagso" size={24} color="#999" />
                   <Text style={styles.facilityText}>{f.nama}</Text>
                 </View>
@@ -221,10 +192,6 @@ const DetailApartmentScreen: React.FC = () => {
           ) : (
             <Text style={{ color: '#666' }}>Tidak ada fasilitas tersedia.</Text>
           )}
-          {/* Tombol "See more" dari UI dummy, bisa diimplementasikan jika ada daftar fasilitas lengkap */}
-          {/* <TouchableOpacity style={styles.seeMoreButton}>
-            <Text style={styles.seeMoreText}>See more</Text>
-          </TouchableOpacity> */}
         </View>
 
         {/* Map */}
@@ -232,7 +199,6 @@ const DetailApartmentScreen: React.FC = () => {
           <Text style={styles.sectionTitle}>Lokasi</Text>
           <MapView
             style={styles.map}
-            // Menggunakan koordinat default karena model tidak menyertakan lat/lng langsung
             initialRegion={{
               latitude: DEFAULT_LATITUDE,
               longitude: DEFAULT_LONGITUDE,
@@ -246,18 +212,16 @@ const DetailApartmentScreen: React.FC = () => {
               description={kosData.alamat}
             />
           </MapView>
-          {kosData.link_maps ? (
+          {kosData.link_maps && (
             <TouchableOpacity style={styles.openMapButton} onPress={openGoogleMaps}>
               <Text style={styles.openMapButtonText}>Buka di Google Maps</Text>
             </TouchableOpacity>
-          ) : (
-            <Text style={{ marginTop: 10, color: '#666' }}>Link Google Maps tidak tersedia.</Text>
           )}
         </View>
 
         {/* Rooms */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Pilih kamar tersedia</Text>
+          <Text style={styles.sectionTitle}>Kamar Tersedia</Text>
           {hasRooms ? (
             kosData.kamar.map((room: Kamar) => (
               <View key={room.id} style={styles.roomItem}>
@@ -281,21 +245,6 @@ const DetailApartmentScreen: React.FC = () => {
           ) : (
             <Text style={{ color: '#666' }}>Tidak ada kamar tersedia.</Text>
           )}
-        </View>
-
-        {/* Reviews (Menggunakan data dummy karena tidak ada di model DetailKosData Anda) */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Ulasan</Text>
-          {reviews.map((review: Review) => (
-            <View key={review.id} style={styles.reviewItem}>
-              <Image source={{ uri: review.profilePic }} style={styles.profilePic} />
-              <View style={styles.reviewContent}>
-                <Text style={styles.reviewerName}>{review.name}</Text>
-                <Text style={styles.reviewText}>{review.text}</Text>
-              </View>
-              <Text style={styles.rating}>{`${review.rating} ⭐`}</Text>
-            </View>
-          ))}
         </View>
       </ScrollView>
 
@@ -323,7 +272,7 @@ const DetailApartmentScreen: React.FC = () => {
                 setVisible(true);
               }
             }}
-            disabled={!hasRooms || !firstRoom?.paket_harga?.perbulan_harga} // Disable jika tidak ada harga
+            disabled={!hasRooms || !firstRoom?.paket_harga?.perbulan_harga}
           >
             <Text style={styles.buttonText}>Booking Now</Text>
           </TouchableOpacity>
@@ -331,74 +280,120 @@ const DetailApartmentScreen: React.FC = () => {
 
         {/* Modal Booking */}
         <Modal
-          visible={visible}
-          transparent
           animationType="slide"
+          transparent={true}
+          visible={visible}
           onRequestClose={() => setVisible(false)}
         >
+          {/* Overlay untuk menangkap tap di luar */}
           <View style={styles.overlay}>
-            <TouchableOpacity
-              style={{ flex: 1 }}
-              activeOpacity={1}
-              onPressOut={() => setVisible(false)}
-            />
+            <TouchableWithoutFeedback onPress={() => setVisible(false)}>
+              <View style={{ flex: 1 }} />
+            </TouchableWithoutFeedback>
+
+            {/* Konten modal */}
             <SafeAreaView style={styles.containerModal}>
-              <Text style={styles.titleContainer}>Booking</Text>
-              {/* Check In */}
-              <TouchableOpacity style={styles.dateButton} onPress={toggleCheckIn}>
-                <Feather name="calendar" size={20} color="black" />
-                <Text style={styles.dateText}>{checkIn ? checkIn : 'Check In'}</Text>
-              </TouchableOpacity>
-              {showCheckIn && (
-                <Calendar
-                  onDayPress={(day) => {
-                    setCheckIn(day.dateString);
-                    setShowCheckIn(false);
-                  }}
-                  markedDates={{ [checkIn]: { selected: true, selectedColor: '#4CAF50' } }}
-                />
-              )}
-              {/* Check Out */}
-              <TouchableOpacity style={styles.dateButton} onPress={toggleCheckOut}>
-                <Feather name="calendar" size={20} color="black" />
-                <Text style={styles.dateText}>{checkOut ? checkOut : 'Check Out'}</Text>
-              </TouchableOpacity>
-              {showCheckOut && (
-                <Calendar
-                  onDayPress={(day) => {
-                    setCheckOut(day.dateString);
-                    setShowCheckOut(false);
-                  }}
-                  markedDates={{ [checkOut]: { selected: true, selectedColor: '#4CAF50' } }}
-                />
-              )}
+              <ScrollView contentContainerStyle={{ paddingBottom: 20 }}>
+                <Text style={styles.titleContainer}>Booking</Text>
 
-              {/* Data Penghuni (menggunakan nilai default dari UI dummy Anda) */}
-              <View style={styles.form}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="Nama Lengkap"
-                  value="Muhammad Syahputra"
-                />
-                <TextInput style={styles.input} placeholder="Nomor HP" value="08222324xxx" />
-                <TextInput
-                  style={styles.input}
-                  placeholder="Email"
-                  value="muhammadsyahputra@gmail.com"
-                />
-              </View>
+                {/* Check In */}
+                <TouchableOpacity style={styles.dateButton} onPress={toggleCheckIn}>
+                  <Feather name="calendar" size={20} color="black" />
+                  <Text style={styles.dateText}>{checkIn || 'Check In'}</Text>
+                </TouchableOpacity>
+                {showCheckIn && (
+                  <Calendar
+                    onDayPress={(day) => {
+                      setCheckIn(day.dateString);
+                      setShowCheckIn(false);
+                    }}
+                    markedDates={{ [checkIn]: { selected: true, selectedColor: '#4CAF50' } }}
+                  />
+                )}
 
-              <Text style={styles.total}>
-                Total: Rp
-                {firstRoom && firstRoom.paket_harga?.perbulan_harga
-                  ? firstRoom.paket_harga.perbulan_harga.toLocaleString('id-ID')
-                  : 'Harga tidak tersedia'}
-              </Text>
+                {/* Check Out */}
+                <TouchableOpacity style={styles.dateButton} onPress={toggleCheckOut}>
+                  <Feather name="calendar" size={20} color="black" />
+                  <Text style={styles.dateText}>{checkOut || 'Check Out'}</Text>
+                </TouchableOpacity>
+                {showCheckOut && (
+                  <Calendar
+                    onDayPress={(day) => {
+                      setCheckOut(day.dateString);
+                      setShowCheckOut(false);
+                    }}
+                    markedDates={{ [checkOut]: { selected: true, selectedColor: '#4CAF50' } }}
+                  />
+                )}
 
-              <CustomButton
-                onPress={() => router.replace('/home/payment/payment')}
-                title="Booking Now"
-              />
+                {/* Data Penghuni */}
+                <Text style={styles.subtitleContainer}>Data Penghuni</Text>
+                <View style={styles.form}>
+                  <TextInput
+                    readOnly={true}
+                    style={styles.input}
+                    placeholder="Nama Lengkap"
+                    value={user?.nama || ''}
+                  />
+                  <TextInput
+                    readOnly={true}
+                    style={styles.input}
+                    placeholder="Nomor HP"
+                    value={user?.noHp || ''}
+                  />
+                  <TextInput
+                    readOnly={true}
+                    style={styles.input}
+                    placeholder="Email"
+                    value={user?.email || ''}
+                  />
+                </View>
+
+                {/* Paket Harga */}
+                <Text style={styles.subtitleContainer}>Paket Harga</Text>
+                <View style={styles.chipContainer}>
+                  {firstRoom &&
+                    firstRoom.paket_harga &&
+                    Object.entries(firstRoom.paket_harga)
+                      .slice(0, -1)
+                      .map(([key, value]) => {
+                        const label = paketLabels[key] || key;
+                        const isSelected = selectedPaket === key;
+                        return (
+                          <TouchableOpacity
+                            key={key}
+                            style={[
+                              styles.chip,
+                              { backgroundColor: isSelected ? colors.primary : '#e0e0e0' },
+                            ]}
+                            onPress={() => setSelectedPaket(key as keyof PaketHarga)}
+                          >
+                            <Text
+                              style={[styles.chipText, { color: isSelected ? '#fff' : '#333' }]}
+                            >
+                              {label} - Rp {value.toLocaleString('id-ID')}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                </View>
+
+                <Text style={styles.total}>
+                  Total: Rp{' '}
+                  {selectedPaket &&
+                  firstRoom?.paket_harga?.[selectedPaket as keyof PaketHarga] !== undefined
+                    ? firstRoom.paket_harga[selectedPaket as keyof PaketHarga].toLocaleString(
+                        'id-ID',
+                      )
+                    : firstRoom?.paket_harga?.perbulan_harga?.toLocaleString('id-ID') ||
+                      'Harga tidak tersedia'}
+                </Text>
+
+                <CustomButton
+                  onPress={() => router.replace('/home/payment/payment')}
+                  title="Booking Now"
+                />
+              </ScrollView>
             </SafeAreaView>
           </View>
         </Modal>
@@ -412,8 +407,24 @@ const styles = StyleSheet.create({
     height: '70%',
     padding: 20,
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20, // biar ada efek bottom sheet
+    borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
+  },
+  facilitiesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 10,
+  },
+  facilityGridItem: {
+    width: '33%',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  facilityText: {
+    marginTop: 5,
+    fontSize: 12,
+    textAlign: 'center',
+    color: '#333',
   },
   overlay: {
     flex: 1,
@@ -437,24 +448,33 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 10,
   },
-  total: { fontSize: 18, fontWeight: 'bold', marginVertical: 20 },
-  confirmButton: {
-    backgroundColor: '#0B6E4F',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
+  chipContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 10,
   },
-  confirmText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  bottomSheet: {
-    backgroundColor: 'white',
-    padding: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
+  chip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  chipText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  titleContainer: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginVertical: 10 },
+  subtitleContainer: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 20,
+    textAlign: 'left',
+    marginVertical: 10,
   },
   button: {
     height: 54,
     borderRadius: 40,
-
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
@@ -469,10 +489,9 @@ const styles = StyleSheet.create({
     fontStyle: 'normal',
     color: '#FFFFFF',
   },
-
+  total: { fontSize: 18, fontWeight: 'bold', marginVertical: 20 },
   cardPrice: { fontSize: 20, fontWeight: 'bold', color: '#0f172a' },
   cardMonth: { fontSize: 10, fontWeight: 'bold', color: '#0f172a' },
-
   container: { flex: 1, backgroundColor: '#f5f5f5' },
   header: { height: 300 },
   mainImage: { width: '100%', height: '100%', resizeMode: 'cover' },
@@ -501,17 +520,11 @@ const styles = StyleSheet.create({
     borderRadius: 50,
   },
   infoContainer: { padding: 16 },
-  titleContainer: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginVertical: 10 },
   subtitle: { fontSize: 14, color: '#666' },
   section: { backgroundColor: '#fff', padding: 16, marginBottom: 10 },
   sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
   gallery: { flexDirection: 'row' },
   galleryImage: { width: 80, height: 80, borderRadius: 8, marginRight: 10 },
-  facilitiesRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  facilityItem: { alignItems: 'center' },
-  facilityText: { fontSize: 12, marginTop: 5, color: '#666' },
-  seeMoreButton: { alignSelf: 'flex-start', marginTop: 10 },
-  seeMoreText: { color: 'blue', fontSize: 14 },
   map: { width: '100%', height: 200, borderRadius: 10 },
   openMapButton: {
     marginTop: 10,
@@ -520,10 +533,7 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     alignItems: 'center',
   },
-  openMapButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
+  openMapButtonText: { color: '#fff', fontWeight: 'bold' },
   roomItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -534,34 +544,25 @@ const styles = StyleSheet.create({
   },
   roomImage: { width: 60, height: 60, borderRadius: 8 },
   roomDetails: { flex: 1, marginLeft: 10 },
-  roomTitle: { fontSize: 16, fontWeight: 'bold' },
+  roomTitle: { fontWeight: 'bold' },
   roomSubtitle: { fontSize: 12, color: '#666' },
-  roomPrice: { fontSize: 16, fontWeight: 'bold', color: 'green' },
-  reviewItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 15,
-    paddingBottom: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-  },
-  profilePic: { width: 40, height: 40, borderRadius: 20, marginRight: 10 },
-  reviewContent: { flex: 1 },
-  reviewerName: { fontWeight: 'bold' },
-  reviewText: { fontSize: 14, color: '#333', marginTop: 5 },
-  rating: { fontWeight: 'bold', color: 'orange' },
+  roomPrice: { fontWeight: 'bold', color: '#0f172a' },
   floatingButtons: {
-    width: '100%',
     position: 'absolute',
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    height: 80,
     backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 10,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     shadowColor: '#000',
+    shadowOffset: { width: 0, height: -3 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 3,
     elevation: 5,
   },
 });
