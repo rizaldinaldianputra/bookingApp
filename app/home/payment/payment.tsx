@@ -1,8 +1,12 @@
+import { BookingData } from '@/models/transaksi_kossan';
+import { postTransaksi } from '@/service/transaksi_service';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   Modal,
   ScrollView,
@@ -15,8 +19,25 @@ import {
 
 export default function PaymentScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+
+  const payload: BookingData = {
+    user_id: Number(params.user_id),
+    tanggal: String(params.tanggal),
+    harga: Number(params.harga),
+    quantity: Number(params.quantity),
+    start_order_date: String(params.start_order_date),
+    end_order_date: String(params.end_order_date),
+    kos_id: Number(params.kos_id),
+    kamar_id: Number(params.kamar_id),
+    paket_id: Number(params.paket_id),
+  };
+
   const [proofImage, setProofImage] = useState<string | null>(null);
+  const [asalBank, setAsalBank] = useState('');
+  const [namaPengirim, setNamaPengirim] = useState('');
   const [successVisible, setSuccessVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -37,19 +58,33 @@ export default function PaymentScreen() {
     }
   };
 
+  const handleSudahBayar = async () => {
+    setIsLoading(true);
+    try {
+      const response = await postTransaksi(payload);
+      if (response.success) {
+        setSuccessVisible(true);
+      } else {
+        Alert.alert('Transaksi gagal', response.message);
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Terjadi kesalahan', 'Tidak dapat melakukan transaksi');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Feather name="arrow-left" size={24} color="black" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Pembayaran</Text>
-        {/* spacer biar title tetap di tengah */}
         <View style={{ width: 24 }} />
       </View>
 
-      {/* Info Properti */}
       <View style={styles.propertyCard}>
         <Image
           source={{ uri: 'https://via.placeholder.com/80x80.png' }}
@@ -58,16 +93,17 @@ export default function PaymentScreen() {
         <View style={{ flex: 1, marginLeft: 10 }}>
           <Text style={styles.propertyName}>Gunung Pati Hills</Text>
           <Text style={styles.propertyAddress}>Jl. Seduduk, Karol Semarang</Text>
-          <Text style={styles.propertyDate}>19 October 2025 - 19 November 2025</Text>
+          <Text style={styles.propertyDate}>
+            {payload.start_order_date} - {payload.end_order_date}
+          </Text>
         </View>
       </View>
 
-      {/* Rincian Pembayaran */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Rincian Pembayaran</Text>
         <View style={styles.row}>
           <Text>Total 1 bulan</Text>
-          <Text style={styles.bold}>Rp1.200.000,-</Text>
+          <Text style={styles.bold}>Rp{payload.harga},-</Text>
         </View>
         <View style={styles.row}>
           <Text>Fee</Text>
@@ -75,7 +111,6 @@ export default function PaymentScreen() {
         </View>
       </View>
 
-      {/* Pembayaran Transfer */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Pembayaran transfer</Text>
         <View style={styles.bankCard}>
@@ -93,7 +128,6 @@ export default function PaymentScreen() {
         </View>
       </View>
 
-      {/* Form Upload */}
       <View style={styles.section}>
         <Text>Upload Bukti Transfer</Text>
         <TouchableOpacity style={styles.uploadBox} onPress={pickImage}>
@@ -108,18 +142,30 @@ export default function PaymentScreen() {
         </TouchableOpacity>
 
         <Text style={{ marginTop: 15 }}>Asal Bank</Text>
-        <TextInput style={styles.input} placeholder="Please type here ..." />
+        <TextInput
+          style={styles.input}
+          placeholder="Please type here ..."
+          value={asalBank}
+          onChangeText={setAsalBank}
+        />
 
         <Text style={{ marginTop: 15 }}>Nama Pengirim</Text>
-        <TextInput style={styles.input} placeholder="Please type here ..." />
+        <TextInput
+          style={styles.input}
+          placeholder="Please type here ..."
+          value={namaPengirim}
+          onChangeText={setNamaPengirim}
+        />
       </View>
 
-      {/* Button */}
-      <TouchableOpacity style={styles.button} onPress={() => setSuccessVisible(true)}>
-        <Text style={styles.buttonText}>Sudah Bayar</Text>
+      <TouchableOpacity style={styles.button} onPress={handleSudahBayar} disabled={isLoading}>
+        {isLoading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>Sudah Bayar</Text>
+        )}
       </TouchableOpacity>
 
-      {/* Modal Success */}
       <Modal
         visible={successVisible}
         transparent
@@ -128,18 +174,15 @@ export default function PaymentScreen() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
-            {/* Icon centang */}
             <View style={styles.circle}>
               <Feather name="check" size={40} color="white" />
             </View>
 
-            {/* Text */}
             <Text style={styles.modalTitle}>Pembayaran Berhasil</Text>
             <Text style={styles.modalDesc}>
               Selamat pembayaran kamu telah berhasil dilakukan, kami akan pengecekan terlebih dahulu
             </Text>
 
-            {/* Button status */}
             <TouchableOpacity
               style={styles.modalButton}
               onPress={() => {
@@ -209,12 +252,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     height: 200,
   },
-  input: {
-    backgroundColor: '#f2f2f2',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 8,
-  },
+  input: { backgroundColor: '#f2f2f2', borderRadius: 8, padding: 12, marginTop: 8 },
   button: {
     backgroundColor: '#0B6E4F',
     padding: 15,

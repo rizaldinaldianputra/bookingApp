@@ -4,6 +4,7 @@ export interface User {
   nik: number;
   email: string;
   alamat: string;
+  noHp: string;
   gambarktp: string;
   fotoselfie: string;
   status: string;
