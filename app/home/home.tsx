@@ -1,6 +1,8 @@
 import CustomButton from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
+import { Lokasi } from '@/models/lokasi';
 import { User } from '@/models/user';
+import { getLokasi } from '@/service/home_service';
 import { getUsers } from '@/service/user_service';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -20,12 +22,13 @@ import { colors } from '../../constants/colors';
 
 const { width } = Dimensions.get('window');
 
-// Data with dummy network images
+// Dummy Promo
 const promoData = [
   { id: '1', image: { uri: 'https://picsum.photos/300/150?random=11' } },
   { id: '2', image: { uri: 'https://picsum.photos/300/150?random=12' } },
 ];
 
+// Dummy Near You
 const nearYouData = [
   {
     id: '1',
@@ -50,23 +53,6 @@ const nearYouData = [
   },
 ];
 
-const recommendedData = [
-  {
-    id: '1',
-    name: 'Gunung Pati Hills',
-    price: 'Rp 500.000',
-    details: '1 Bathroom • 3 Bed • AC • WiFi • Couple',
-    image: { uri: 'https://picsum.photos/200/300?random=31' },
-  },
-  {
-    id: '2',
-    name: 'Waringin Square',
-    price: 'Rp 650.000',
-    details: '2 Bathroom • 4 Bed • AC • WiFi • Family',
-    image: { uri: 'https://picsum.photos/200/300?random=32' },
-  },
-];
-
 // Render Item for Promo section
 const renderPromoItem = ({ item }: { item: (typeof promoData)[0] }) => (
   <View style={styles.promoItemContainer}>
@@ -88,19 +74,24 @@ const renderNearYouItem = ({ item }: { item: (typeof nearYouData)[0] }) => (
   </View>
 );
 
-// Render Item for Recommended section
-const handleCardPress = (itemId: string) => {
-  router.push(`/home/kossan/detail`);
+// Handle card press
+const handleCardPress = (itemName: string) => {
+  router.push({
+    pathname: '/search/search_by_lokasi',
+    params: { name: itemName },
+  });
 };
 
-const renderRecommendedItem = ({ item }: { item: (typeof recommendedData)[0] }) => (
-  <TouchableOpacity onPress={() => handleCardPress(item.id)}>
+// Render Item for Lokasi section
+const renderLokasiItem = ({ item }: { item: Lokasi }) => (
+  <TouchableOpacity onPress={() => handleCardPress(item.nama)}>
     <View style={styles.recommendedCard}>
-      <Image source={item.image} style={styles.recommendedImage} />
+      <Image
+        source={{ uri: `https://picsum.photos/300/150?random=${item.id.toString()}` }}
+        style={styles.recommendedImage}
+      />
       <View style={styles.recommendedDetails}>
-        <Text style={styles.cardTitle}>{item.name}</Text>
-        <Text style={styles.cardDetails}>{item.details}</Text>
-        <Text style={styles.cardPrice}>{`${item.price}/Month`}</Text>
+        <Text style={styles.cardTitle}>{item.nama}</Text>
       </View>
     </View>
   </TouchableOpacity>
@@ -109,12 +100,23 @@ const renderRecommendedItem = ({ item }: { item: (typeof recommendedData)[0] }) 
 // Main Component
 const HomeScreen = ({ navigation }: any) => {
   const { token } = useAuth();
-
   const [user, setUser] = useState<User | null>(null);
+  const [lokasi, setLokasi] = useState<Lokasi[]>([]);
+
+  useEffect(() => {
+    const fetchLokasi = async () => {
+      try {
+        const response = await getLokasi();
+        setLokasi(response.data);
+      } catch (e) {
+        console.log('Error getLokasi:', e);
+      }
+    };
+    fetchLokasi();
+  }, []);
 
   useEffect(() => {
     if (!token) return;
-
     (async () => {
       try {
         const data = await getUsers();
@@ -123,10 +125,11 @@ const HomeScreen = ({ navigation }: any) => {
         console.error(error);
       }
     })();
-  }, [token]); // jalankan ulang kalau token berubah
+  }, [token]);
 
   return (
     <ScrollView style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.greeting}>{user?.nama || ''}</Text>
         {token && (
@@ -135,6 +138,8 @@ const HomeScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Status inactive */}
       {user?.status === 'inactive' && (
         <View>
           <Text style={styles.subtitle}>
@@ -146,6 +151,8 @@ const HomeScreen = ({ navigation }: any) => {
           />
         </View>
       )}
+
+      {/* Search */}
       <TouchableOpacity onPress={() => navigation.navigate('Search')}>
         <View style={styles.searchContainer}>
           <TextInput
@@ -156,7 +163,7 @@ const HomeScreen = ({ navigation }: any) => {
           />
           <TouchableOpacity
             style={styles.filterButton}
-            onPress={() => navigation.navigate('Search')} // pindah ke tab Search
+            onPress={() => navigation.navigate('Search')}
           >
             <Icon name="menu" size={24} color="#fff" />
           </TouchableOpacity>
@@ -174,6 +181,7 @@ const HomeScreen = ({ navigation }: any) => {
         snapToInterval={width * 0.8 + 20}
         decelerationRate="fast"
       />
+
       {/* Near from you Section */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Near from you</Text>
@@ -186,18 +194,20 @@ const HomeScreen = ({ navigation }: any) => {
         horizontal
         showsHorizontalScrollIndicator={false}
       />
-      {/* Recommended for you Section */}
+
+      {/* Recommended for you Section (pakai data lokasi API) */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Recommended for you</Text>
         <Text style={styles.seeMore}>See more</Text>
       </View>
       <FlatList
-        data={recommendedData}
-        renderItem={renderRecommendedItem}
-        keyExtractor={(item) => item.id}
+        data={lokasi}
+        renderItem={renderLokasiItem}
+        keyExtractor={(item) => item.id.toString()}
         horizontal
         showsHorizontalScrollIndicator={false}
       />
+
       <View style={{ height: 100 }} />
     </ScrollView>
   );
@@ -308,4 +318,5 @@ const styles = StyleSheet.create({
   cardDetails: { fontSize: 12, color: '#6B7280', marginVertical: 2 },
   cardPrice: { fontSize: 14, fontWeight: 'bold', color: '#0f172a' },
 });
-export default HomeScreen; // ✅ harus ada default export
+
+export default HomeScreen;

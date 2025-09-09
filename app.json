@@ -7,12 +7,10 @@
     "icon": "./assets/images/logo.png",
     "scheme": "bookingapp",
     "userInterfaceStyle": "automatic",
-
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "jsEngine": "hermes",
-
       "bundleIdentifier": "com.rizaldinp.bookingApp",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
@@ -20,7 +18,6 @@
     },
     "android": {
       "jsEngine": "hermes",
-
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo.png",
         "backgroundColor": "#1B563A"
@@ -39,8 +36,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "81314a5f-98d4-4c64-a6e5-d8b0f788094f"
+        "projectId": "2b6140b8-736a-48b3-a58c-5319fe4773f8"
       }
-    }
+    },
+    "owner": "rizaldinp"
   }
 }

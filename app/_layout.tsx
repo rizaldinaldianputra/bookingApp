@@ -35,6 +35,7 @@ export default function RootLayout() {
                 'home/profile/pembelian/pembelian_detail',
                 'home/kossan/detail',
                 'home/product/product_detail',
+                'search/search_by_lokasi',
               ];
               return {
                 headerShown: !hideHeaderScreens.includes(route.name),

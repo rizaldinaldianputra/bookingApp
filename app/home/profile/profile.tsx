@@ -24,7 +24,7 @@ const ProfileScreen = () => {
     })();
   }, []);
   const navigation = useNavigation();
-
+  console.log(`${BASE_URL}/img/user/${user?.id?.toString()}/gambarktp/${user?.fotoselfie}`);
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -39,7 +39,7 @@ const ProfileScreen = () => {
       <View style={styles.profileInfo}>
         <Image
           source={{
-            uri: BASE_URL + '/' + user?.fotoselfie,
+            uri: `${BASE_URL}/img/user/${user?.id?.toString()}/gambarktp/${user?.fotoselfie}`,
           }}
           style={styles.profileImage}
         />
