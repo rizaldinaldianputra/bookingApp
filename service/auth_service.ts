@@ -1,6 +1,7 @@
 import { LoginResponse } from '@/models/auth';
+import { User } from '@/models/user';
 import { clearSession, saveToken, saveUser } from '@/session/session';
-import { postRequest } from './main_service';
+import { postFormRequest, postRequest } from './main_service';
 
 // Login
 export const login = async (email: string, password: string) => {
@@ -28,3 +29,6 @@ export const logout = async () => {
   await postRequest<{ message: string }>('/auth/logout');
   await clearSession();
 };
+
+export const register = (formData: FormData) =>
+  postFormRequest<{ success: boolean; message: string; data: User }>('/api/register', formData);

@@ -22,7 +22,6 @@ import {
   View,
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
-import MapView, { Marker } from 'react-native-maps';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   DetailKosData,
@@ -301,24 +300,9 @@ const DetailApartmentScreen: React.FC = () => {
           )}
         </View>
 
-        {/* Map */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Lokasi</Text>
-          <MapView
-            style={styles.map}
-            initialRegion={{
-              latitude: DEFAULT_LATITUDE,
-              longitude: DEFAULT_LONGITUDE,
-              latitudeDelta: 0.01,
-              longitudeDelta: 0.01,
-            }}
-          >
-            <Marker
-              coordinate={{ latitude: DEFAULT_LATITUDE, longitude: DEFAULT_LONGITUDE }}
-              title={kosData.nama}
-              description={kosData.alamat}
-            />
-          </MapView>
+
           {kosData.link_maps && (
             <TouchableOpacity style={styles.openMapButton} onPress={openGoogleMaps}>
               <Text style={styles.openMapButtonText}>Buka di Google Maps</Text>

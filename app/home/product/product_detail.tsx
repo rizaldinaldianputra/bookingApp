@@ -1,4 +1,5 @@
 import { colors } from '@/constants/colors';
+import { useAuth } from '@/context/AuthContext';
 import { KatalogProductById } from '@/models/katalogproductbyid';
 import { User } from '@/models/user';
 import { getProductById, postTransaksiProduct } from '@/service/product_service';
@@ -27,12 +28,15 @@ export default function DetailProductScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const toast = useToast();
+  const { token } = useAuth();
+
   const [isLoading, setIsLoading] = useState(false);
   const [product, setProduct] = useState<KatalogProductById | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [user, setUser] = useState<User | null>(null);
   useEffect(() => {
+    if (!token) return;
     (async () => {
       try {
         const data = await getUsers();
@@ -41,7 +45,8 @@ export default function DetailProductScreen() {
         console.error(error);
       }
     })();
-  }, []);
+  }, [token]);
+
   useEffect(() => {
     if (id) {
       getProductById(id).then((res) => {
@@ -171,38 +176,42 @@ export default function DetailProductScreen() {
         <View style={styles.bottomButtons}>
           <TouchableOpacity
             onPress={async () => {
-              const hargaSatuan = Number(product.harga);
-              const id = Number(user?.id);
-              setIsLoading(true); // mulai loading
+              if (!token) {
+                router.replace('/auth/login');
+              } else {
+                const hargaSatuan = Number(product.harga);
+                const id = Number(user?.id);
+                setIsLoading(true); // mulai loading
 
-              try {
-                const response = await postTransaksiProduct({
-                  id_user: id,
-                  id_produk: product.id_produk,
-                  jumlah: quantity,
-                  harga_satuan: hargaSatuan,
-                  subtotal: hargaSatuan * quantity,
-                  tanggal_transaksi: tanggalTransaksi,
-                  status: 'belum_lunas',
-                });
+                try {
+                  const response = await postTransaksiProduct({
+                    id_user: id,
+                    id_produk: product.id_produk,
+                    jumlah: quantity,
+                    harga_satuan: hargaSatuan,
+                    subtotal: hargaSatuan * quantity,
+                    tanggal_transaksi: tanggalTransaksi,
+                    status: 'belum_lunas',
+                  });
 
-                toast.show(`${response.message}\nNo. Order: ${response.data.no_order}`, {
-                  type: 'success',
-                  placement: 'bottom',
-                });
+                  toast.show(`${response.message}\nNo. Order: ${response.data.no_order}`, {
+                    type: 'success',
+                    placement: 'bottom',
+                  });
 
-                router.replace('/home/main');
-              } catch (error: any) {
-                console.error('Gagal post transaksi:', error);
+                  router.replace('/home/main');
+                } catch (error: any) {
+                  console.error('Gagal post transaksi:', error);
 
-                const errMsg = error.response?.data?.message || 'Transaksi tidak dapat diproses';
+                  const errMsg = error.response?.data?.message || 'Transaksi tidak dapat diproses';
 
-                toast.show(errMsg, {
-                  type: 'danger',
-                  placement: 'bottom',
-                });
-              } finally {
-                setIsLoading(false); // selesai loading
+                  toast.show(errMsg, {
+                    type: 'danger',
+                    placement: 'bottom',
+                  });
+                } finally {
+                  setIsLoading(false); // selesai loading
+                }
               }
             }}
             style={styles.buyNow}

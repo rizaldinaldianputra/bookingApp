@@ -36,6 +36,7 @@ export default function RootLayout() {
                 'home/kossan/detail',
                 'home/product/product_detail',
                 'search/search_by_lokasi',
+                'auth/register',
               ];
               return {
                 headerShown: !hideHeaderScreens.includes(route.name),
