@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router'; // Asumsi menggunakan expo-router
 import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Platform,
@@ -214,7 +215,11 @@ export default function SignUpScreen() {
           <Text style={styles.backButtonText}>Back</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.nextButton} onPress={handleSubmit} disabled={loading}>
-          <Text style={styles.nextButtonText}>{loading ? 'Mengirim...' : 'Daftar'}</Text>
+          {loading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.nextButtonText}>Daftar</Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -267,6 +272,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
+    marginBottom: 20,
     paddingTop: 10,
     backgroundColor: '#fff',
     position: 'absolute',
