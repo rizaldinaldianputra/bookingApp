@@ -68,12 +68,16 @@ const renderRecommendedItem = ({ item }: { item: Kamar }) => {
       : 'https://via.placeholder.com/100';
 
   return (
-    <TouchableOpacity onPress={() => router.push(`/home/kossan/detail?id=${item.id}`)}>
+    <TouchableOpacity
+      onPress={() => router.push(`/home/kossan/kamarlist?id=${item.kos.id}&nama=${item.kos.nama}`)}
+    >
       <View style={styles.card}>
         <Image source={require('../../assets/images/onboarding.png')} style={styles.image} />
         {/* Tombol melayang */}
         <TouchableOpacity
-          onPress={() => router.push('/home/kossan/kamarlist')}
+          onPress={() =>
+            router.push(`/home/kossan/kamarlist?id=${item.kos.id}&nama=${item.kos.nama}`)
+          }
           style={styles.floatingButton}
         >
           <Text style={styles.buttonText}>Lihat Kamar</Text>
@@ -477,7 +481,7 @@ export default function SearchByLokasiScreen() {
     <View style={styles.fullScreenContainer}>
       <View style={{ height: 70 }} />
 
-      <Text style={styles.header}>List Kos Semarang</Text>
+      <Text style={styles.header}>{'List kos ' + name}</Text>
       <View style={styles.searchContainer}>
         <TextInput
           placeholder="Cari Lokasi Kos Lainnya..."

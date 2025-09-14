@@ -1,6 +1,11 @@
-import { Entypo, FontAwesome, MaterialIcons } from '@expo/vector-icons'; // contoh icon library
-import { JSX } from 'react';
+import { BASE_URL } from '@/constants/config';
+import { DetailKosResponse, Kamar } from '@/models/detail_kossan'; // sesuaikan path
+import { getKosById } from '@/service/kossan_service'; // sesuaikan path
+import { Entypo, FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import { router, useLocalSearchParams } from 'expo-router';
+import { JSX, useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
   Image,
@@ -12,30 +17,6 @@ import {
 
 const screenWidth = Dimensions.get('window').width;
 
-interface Kamar {
-  id: string;
-  name: string;
-  location: string;
-  priceNight: string;
-  priceMonth: string;
-  kos: string;
-  image: string;
-  facilities: string[];
-}
-
-const kamarData: Kamar[] = [
-  {
-    id: '1',
-    name: 'Kamar Exclusive',
-    location: 'Kota Semarang',
-    priceNight: 'IDR 150.000',
-    priceMonth: 'IDR 750.000',
-    kos: 'KOS UNNES',
-    image: 'https://i.ibb.co/0FhR4Ff/kos-semangat.jpg',
-    facilities: ['WiFi', 'Bed', 'Parking', 'AC'],
-  },
-];
-
 const facilityIcons: { [key: string]: JSX.Element } = {
   WiFi: <FontAwesome name="wifi" size={16} color="#1D4D3C" />,
   Bed: <MaterialIcons name="bed" size={16} color="#1D4D3C" />,
@@ -44,31 +25,76 @@ const facilityIcons: { [key: string]: JSX.Element } = {
 };
 
 const KamarListScreen = () => {
+  const { id, nama } = useLocalSearchParams<{ id: string; nama: string }>();
+  const [kamarList, setKamarList] = useState<Kamar[]>([]);
+  const [loading, setLoading] = useState(true);
+  console.log('📌 PARAM ID:', id);
+
+  useEffect(() => {
+    if (id) {
+      getKosById(id)
+        .then((res: DetailKosResponse) => {
+          if (res.success && res.data?.kamar) {
+            setKamarList(res.data.kamar);
+          }
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [id]);
+
   const renderItem = ({ item }: { item: Kamar }) => (
     <View style={styles.card}>
-      <Image source={require('../../../assets/images/onboarding.png')} style={styles.image} />
+      {item.gallery.length > 0 ? (
+        <Image source={{ uri: BASE_URL + item.gallery[0].url }} style={styles.image} />
+      ) : (
+        <Image source={require('../../../assets/images/onboarding.png')} style={styles.image} />
+      )}
+
       <View style={styles.cardlist}>
         <View style={styles.cardContent}>
-          <Text style={styles.name}>{item.name}</Text>
-          <Text style={styles.location}>📍 {item.location}</Text>
+          <Text style={styles.name}>{item.nama_kamar}</Text>
+          <Text style={styles.location}>📍 {item.tipe_kos}</Text>
 
-          <Text style={styles.facilityLabel}>facility</Text>
+          <Text style={styles.facilityLabel}>Fasilitas</Text>
           <View style={styles.facilitiesContainer}>
-            {item.facilities.map((facility, index) => (
+            {item.fasilitas.map((fasilitas, index) => (
               <View key={index} style={styles.facilityBox}>
-                {facilityIcons[facility]}
+                {facilityIcons[fasilitas.nama] || (
+                  <Text style={{ fontSize: 12 }}>{fasilitas.nama}</Text>
+                )}
               </View>
             ))}
           </View>
         </View>
-        <View style={styles.priceDetailContainer}>
-          <Text style={styles.priceLabel}>Harga</Text>
 
-          <View>
-            <Text style={styles.priceLabel}>from {item.priceNight} / Night</Text>
-            <Text style={styles.priceLabel}>from {item.priceMonth} / Month</Text>
-          </View>
-          <TouchableOpacity style={styles.detailButton}>
+        <View style={styles.priceDetailContainer}>
+          <Text style={styles.name}>Harga</Text>
+
+          <Text style={styles.priceText}>
+            from Rp{' '}
+            {item.paket_harga && typeof item.paket_harga.perharian_harga === 'number'
+              ? item.paket_harga.perharian_harga.toLocaleString('id-ID')
+              : '-'}{' '}
+            / Night
+          </Text>
+
+          <Text style={styles.priceText}>
+            from Rp{' '}
+            {item.paket_harga && typeof item.paket_harga.perbulan_harga === 'number'
+              ? item.paket_harga.perbulan_harga.toLocaleString('id-ID')
+              : '-'}{' '}
+            / Month
+          </Text>
+
+          <TouchableOpacity
+            style={styles.detailButton}
+            onPress={() =>
+              router.push({
+                pathname: '/home/kossan/detail',
+                params: { idKossan: id, idKamar: item.id.toString() },
+              })
+            }
+          >
             <Text style={styles.detailButtonText}>Detail</Text>
           </TouchableOpacity>
         </View>
@@ -76,15 +102,23 @@ const KamarListScreen = () => {
     </View>
   );
 
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#1D4D3C" />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={{ height: 70 }} />
-      <Text style={styles.header}>List Kos Semarang</Text>
+      <Text style={styles.header}>List Kamar {nama}</Text>
 
       <FlatList
-        data={kamarData}
+        data={kamarList}
         renderItem={renderItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={{ paddingBottom: 20 }}
       />
     </View>
@@ -105,26 +139,29 @@ const styles = StyleSheet.create({
   cardlist: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginHorizontal: 15,
+    alignItems: 'flex-start',
+    padding: 12,
   },
-
-  card: { borderRadius: 12, overflow: 'hidden', marginBottom: 16, backgroundColor: '#A3B7A1' },
+  card: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 16,
+    backgroundColor: '#A3B7A1',
+  },
   image: { width: '100%', height: 180 },
-  cardContent: { padding: 12 },
+  cardContent: { flex: 1, paddingRight: 12 },
   name: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
   location: { color: '#fff', marginBottom: 8 },
   priceDetailContainer: {
-    flexDirection: 'column',
-    justifyContent: 'flex-end',
+    flexShrink: 1,
     alignItems: 'flex-end',
-    marginBottom: 8,
   },
-  priceLabel: { color: '#fff', fontSize: 12 },
+  priceHeader: { color: '#fff', fontSize: 13, fontWeight: 'bold', marginBottom: 4 },
+  priceText: { color: '#fff', fontSize: 12, marginBottom: 2, fontWeight: '400' },
   detailButton: {
     backgroundColor: '#1D4D3C',
     paddingVertical: 6,
-    marginTop: 20,
+    marginTop: 12,
     paddingHorizontal: 12,
     borderRadius: 8,
   },

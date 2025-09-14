@@ -32,7 +32,14 @@ const LokasiList = () => {
   }, []);
 
   const renderItem = ({ item }: { item: Lokasi }) => (
-    <TouchableOpacity onPress={() => router.push('/home/kossan/kossanlist')}>
+    <TouchableOpacity
+      onPress={function () {
+        return router.push({
+          pathname: '/home/kossan/kossanlist',
+          params: { name: item.nama },
+        });
+      }}
+    >
       <View style={styles.card}>
         <ImageBackground
           source={require('../../../assets/images/onboarding.png')}
