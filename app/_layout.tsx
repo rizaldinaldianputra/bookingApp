@@ -36,7 +36,8 @@ export default function RootLayout() {
                 'home/kossan/kamarlist',
                 'home/kossan/kossanlist',
                 'home/kossan/lokasilist',
-                ,
+                'home/kossan/kamarlist_filter',
+
                 'home/kossan/detail',
                 'home/product/product_detail',
                 'search/search_by_lokasi',

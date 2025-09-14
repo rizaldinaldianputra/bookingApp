@@ -1,18 +1,8 @@
 // hooks/kossan.ts
+import { FilterState } from '@/components/ui/FilterModalComponent';
 import { Kamar } from '@/models/kossan';
 import { getKos } from '@/service/kossan_service';
 import { useEffect, useState } from 'react';
-export interface FilterState {
-  location: string;
-  time: string;
-  gender: string;
-  facilities: string[];
-  minPrice: number;
-  maxPrice: number;
-  search: string;
-  checkInDate: Date | null;
-  checkOutDate: Date | null;
-}
 
 export function useKosData(filters: FilterState) {
   const [kosData, setKosData] = useState<Kamar[]>([]);

@@ -1,5 +1,5 @@
+import FilterModalComponent, { FilterState } from '@/components/ui/FilterModalComponent';
 import { useAuth } from '@/context/AuthContext';
-import { FilterState, useKosData } from '@/hooks/kossan';
 import { Lokasi } from '@/models/lokasi';
 import { User } from '@/models/user';
 import { getLokasi } from '@/service/home_service';
@@ -8,8 +8,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 
-import FilterModal from '@/components/ui/modal_serach';
 import { colors } from '@/constants/colors';
+import { useKosData } from '@/hooks/kossan';
 import { Fasilitas, Kamar } from '@/models/kossan';
 import {
   Dimensions,
@@ -51,42 +51,44 @@ const renderLokasiItem = ({ item }: { item: Lokasi }) => (
 
 // Render Item untuk Kos
 const renderKosItem = ({ item }: { item: Kamar }) => (
-  <View style={styles.kosCard}>
-    <Image
-      source={{
-        uri:
-          item.gallery && item.gallery.length > 0
-            ? item.gallery[0].url
-            : 'https://picsum.photos/100',
-      }}
-      style={styles.kosImage}
-    />
-    <View style={styles.kosInfo}>
-      <Text style={styles.kosTitle}>{item.nama_kamar}</Text>
+  <TouchableOpacity onPress={() => router.push(`/home/kossan/detail?id=${item.id}`)}>
+    <View style={styles.kosCard}>
+      <Image
+        source={{
+          uri:
+            item.gallery && item.gallery.length > 0
+              ? item.gallery[0].url
+              : 'https://picsum.photos/100',
+        }}
+        style={styles.kosImage}
+      />
+      <View style={styles.kosInfo}>
+        <Text style={styles.kosTitle}>{item.nama_kamar}</Text>
 
-      <View style={styles.facilityRow}>
-        {Array.isArray(item.fasilitas) ? (
-          item.fasilitas.slice(0, 4).map((fasilitas: Fasilitas | string, index: number) => (
-            <View key={index} style={styles.facilityBadge}>
+        <View style={styles.facilityRow}>
+          {Array.isArray(item.fasilitas) ? (
+            item.fasilitas.slice(0, 4).map((fasilitas: Fasilitas | string, index: number) => (
+              <View key={index} style={styles.facilityBadge}>
+                <Text style={styles.facilityText}>
+                  {typeof fasilitas === 'string' ? fasilitas : fasilitas.nama}
+                </Text>
+              </View>
+            ))
+          ) : item.fasilitas ? (
+            <View style={styles.facilityBadge}>
               <Text style={styles.facilityText}>
-                {typeof fasilitas === 'string' ? fasilitas : fasilitas.nama}
+                {typeof item.fasilitas === 'string' ? item.fasilitas : item.fasilitas}
               </Text>
             </View>
-          ))
-        ) : item.fasilitas ? (
-          <View style={styles.facilityBadge}>
-            <Text style={styles.facilityText}>
-              {typeof item.fasilitas === 'string' ? item.fasilitas : item.fasilitas}
-            </Text>
-          </View>
-        ) : null}
-      </View>
+          ) : null}
+        </View>
 
-      <Text style={styles.kosPrice}>
-        Rp {item.paket_harga?.perharian_harga?.toLocaleString() ?? 0}/bulan
-      </Text>
+        <Text style={styles.kosPrice}>
+          Rp {item.paket_harga?.perharian_harga?.toLocaleString() ?? 0}/bulan
+        </Text>
+      </View>
     </View>
-  </View>
+  </TouchableOpacity>
 );
 
 const HomeScreen = () => {
@@ -95,13 +97,11 @@ const HomeScreen = () => {
   const [lokasi, setLokasi] = useState<Lokasi[]>([]);
   const [isFilterModalVisible, setFilterModalVisible] = useState(false);
 
+  // Gunakan FilterState yang diimpor dari FilterModalComponent
   const [activeFilters, setActiveFilters] = useState<FilterState>({
     location: '',
     time: '',
     gender: '',
-    facilities: [],
-    minPrice: 0,
-    maxPrice: 10000000,
     search: '',
     checkInDate: null,
     checkOutDate: null,
@@ -163,7 +163,7 @@ const HomeScreen = () => {
         </TouchableOpacity>
       )}
 
-      {/* Search */}
+      {/* Search - Panggil FilterModalComponent di icon search */}
       <View style={styles.containerSearch}>
         <View style={styles.textContainer}>
           <Text style={styles.title}>Select Location</Text>
@@ -206,8 +206,8 @@ const HomeScreen = () => {
         contentContainerStyle={{ padding: 20, backgroundColor: '#F9FAFB', paddingBottom: 100 }}
       />
 
-      {/* Filter Modal */}
-      <FilterModal
+      {/* Filter Modal yang baru */}
+      <FilterModalComponent
         isVisible={isFilterModalVisible}
         onClose={() => setFilterModalVisible(false)}
         onApplyFilter={handleApplyFilter}
