@@ -13,12 +13,15 @@ import {
   ActivityIndicator,
   Image,
   Linking,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import DateTimePickerModal from 'react-native-modal-datetime-picker'; // Import DateTimePickerModal
 import RenderHtml from 'react-native-render-html';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Fasilitas, Gallery, PaketHarga } from '../../../models/detail_kossan';
@@ -38,11 +41,17 @@ const DetailApartmentScreen: React.FC = () => {
   const [selectedHarga, setSelectedHarga] = useState<number | null>(null);
 
   const [visible, setVisible] = useState(false);
-  const [showCheckIn, setShowCheckIn] = useState(false);
-  const [showCheckOut, setShowCheckOut] = useState(false);
-  const [checkIn, setCheckIn] = useState('');
-  const [checkOut, setCheckOut] = useState('');
+  const [showCheckInPicker, setShowCheckInPicker] = useState(false);
+  const [showCheckOutPicker, setShowCheckOutPicker] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // State untuk data pada modal
+  const [namaLengkap, setNamaLengkap] = useState('');
+  const [nomorHandphone, setNomorHandphone] = useState('');
+  const [email, setEmail] = useState('');
+  const [noIdentitas, setNoIdentitas] = useState('');
+  const [tanggalCheckIn, setTanggalCheckIn] = useState('');
+  const [tanggalCheckOut, setTanggalCheckOut] = useState('');
 
   useEffect(() => {
     if (!token) return;
@@ -50,6 +59,13 @@ const DetailApartmentScreen: React.FC = () => {
       try {
         const data = await getUsers();
         setUser(data.user);
+        // Set nilai default dari user ke state modal
+        if (data.user) {
+          setNamaLengkap(data.user.nama || '');
+          setNomorHandphone(data.user.noHp || '');
+          setEmail(data.user.email || '');
+          setNoIdentitas(data.user.email || '');
+        }
       } catch (error) {
         console.error(error);
       }
@@ -90,6 +106,38 @@ const DetailApartmentScreen: React.FC = () => {
         console.error("Couldn't open URL:", err),
       );
     }
+  };
+
+  const handleBooking = () => {
+    const selectedPaketId = kosData?.paket_harga?.paket_id;
+
+    const bookingData = {
+      user_id: user?.id,
+      tanggal: new Date().toISOString().split('T')[0],
+      harga: selectedHarga,
+      quantity: 1,
+      start_order_date: tanggalCheckIn,
+      end_order_date: tanggalCheckOut,
+      kos_id: idKossan,
+      kamar_id: idKamar,
+      paket_id: selectedPaketId,
+    };
+    router.replace({
+      pathname: '/home/payment/payment',
+      params: bookingData,
+    });
+
+    setVisible(false);
+  };
+
+  const handleConfirmCheckIn = (date: Date) => {
+    setTanggalCheckIn(date.toISOString().split('T')[0]);
+    setShowCheckInPicker(false);
+  };
+
+  const handleConfirmCheckOut = (date: Date) => {
+    setTanggalCheckOut(date.toISOString().split('T')[0]);
+    setShowCheckOutPicker(false);
   };
 
   if (isLoading) {
@@ -244,6 +292,145 @@ const DetailApartmentScreen: React.FC = () => {
           <Text style={styles.buttonText}>Booking Now</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Bottom Dialog Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={visible}
+        onRequestClose={() => setVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Konfirmasi Pemesanan</Text>
+
+            {/* Data Penghuni */}
+            <View style={modalStyles.section}>
+              <View style={modalStyles.sectionHeader}>
+                <Text style={modalStyles.sectionTitle}>Data Penghuni</Text>
+                <TouchableOpacity onPress={() => console.log('Edit Data Penghuni')}>
+                  <Text style={modalStyles.editButtonText}>Edit</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={modalStyles.inputGroup}>
+                <Text style={modalStyles.inputLabel}>Nama Lengkap</Text>
+                <TextInput
+                  style={modalStyles.textInput}
+                  value={namaLengkap}
+                  onChangeText={setNamaLengkap}
+                  placeholder="Masukkan Nama Lengkap"
+                />
+              </View>
+              <View style={modalStyles.inputGroup}>
+                <Text style={modalStyles.inputLabel}>Nomor Handphone</Text>
+                <TextInput
+                  style={modalStyles.textInput}
+                  value={nomorHandphone}
+                  onChangeText={setNomorHandphone}
+                  keyboardType="phone-pad"
+                  placeholder="Masukkan Nomor Handphone"
+                />
+              </View>
+              <View style={modalStyles.inputGroup}>
+                <Text style={modalStyles.inputLabel}>Email</Text>
+                <TextInput
+                  style={modalStyles.textInput}
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  placeholder="Masukkan Email"
+                />
+              </View>
+              <View style={modalStyles.inputGroup}>
+                <Text style={modalStyles.inputLabel}>No. Identitas</Text>
+                <TextInput
+                  style={modalStyles.textInput}
+                  value={noIdentitas}
+                  onChangeText={setNoIdentitas}
+                  placeholder="Masukkan Nomor Identitas"
+                />
+              </View>
+            </View>
+
+            {/* Rentang Tanggal */}
+            <View style={modalStyles.section}>
+              <Text style={modalStyles.sectionTitle}>Rentang Tanggal</Text>
+              <View style={modalStyles.datePickerContainer}>
+                <TouchableOpacity
+                  style={modalStyles.datePickerButton}
+                  onPress={() => setShowCheckInPicker(true)}
+                >
+                  <Feather name="calendar" size={18} color={colors.primary} />
+                  <Text style={modalStyles.datePickerText}>
+                    {tanggalCheckIn || 'Pilih Tanggal Check-in'}
+                  </Text>
+                </TouchableOpacity>
+                <Text style={modalStyles.dateArrow}>→</Text>
+                <TouchableOpacity
+                  style={modalStyles.datePickerButton}
+                  onPress={() => setShowCheckOutPicker(true)}
+                >
+                  <Feather name="calendar" size={18} color={colors.primary} />
+                  <Text style={modalStyles.datePickerText}>
+                    {tanggalCheckOut || 'Pilih Tanggal Check-out'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* DateTimePickerModal untuk Check-in */}
+            <DateTimePickerModal
+              isVisible={showCheckInPicker}
+              mode="date"
+              onConfirm={handleConfirmCheckIn}
+              onCancel={() => setShowCheckInPicker(false)}
+              date={tanggalCheckIn ? new Date(tanggalCheckIn) : new Date()}
+            />
+
+            {/* DateTimePickerModal untuk Check-out */}
+            <DateTimePickerModal
+              isVisible={showCheckOutPicker}
+              mode="date"
+              onConfirm={handleConfirmCheckOut}
+              onCancel={() => setShowCheckOutPicker(false)}
+              date={tanggalCheckOut ? new Date(tanggalCheckOut) : new Date()}
+            />
+
+            {/* Detail Pemesanan */}
+            <View style={modalStyles.section}>
+              <Text style={modalStyles.sectionTitle}>Detail Pemesanan</Text>
+
+              <View style={modalStyles.detailRow}>
+                <Text style={modalStyles.detailLabel}>Nama kos/kamar</Text>
+                <Text style={modalStyles.detailValue} numberOfLines={2} ellipsizeMode="tail">
+                  {kosData?.kos.nama} | {kosData?.nama_kamar}
+                </Text>
+              </View>
+
+              <View style={modalStyles.detailRow}>
+                <Text style={modalStyles.detailLabel}>Jumlah Penghuni</Text>
+                <Text style={modalStyles.detailValue}>1 Orang Dewasa</Text>
+              </View>
+
+              <View style={[modalStyles.detailRow, modalStyles.totalPriceRow]}>
+                <Text style={modalStyles.detailLabel}>Harga</Text>
+                <Text style={modalStyles.totalPriceText}>
+                  Rp {selectedHarga ? selectedHarga.toLocaleString('id-ID') : '0'}
+                </Text>
+              </View>
+            </View>
+
+            {/* Tombol Konfirmasi Pesanan */}
+            <TouchableOpacity
+              style={modalStyles.confirmButton}
+              onPress={handleBooking}
+              disabled={false} // sementara untuk testing
+            >
+              <Text style={modalStyles.confirmButtonText}>Konfirmasi Pesanan</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -332,6 +519,149 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   buttonText: { fontSize: 16, fontWeight: '600', color: '#fff' },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderTopRightRadius: 20,
+    borderTopLeftRadius: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: colors.primary,
+  },
+  modalButton: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  modalButtonText: {
+    fontSize: 14,
+  },
+  modalAction: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  modalActionText: {
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+});
+
+const modalStyles = StyleSheet.create({
+  section: {
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 6,
+  },
+  detailLabel: {
+    width: 120, // label fixed width biar rata
+    fontWeight: '500',
+    color: '#444',
+  },
+  detailValue: {
+    flex: 1, // isi ambil sisa ruang
+    color: '#333',
+  },
+  totalPriceRow: {
+    marginTop: 8,
+  },
+  totalPriceText: {
+    flex: 1,
+    fontWeight: 'bold',
+    color: '#d32f2f',
+    textAlign: 'right',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+
+  editButtonText: {
+    color: colors.primary,
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  inputGroup: {
+    marginBottom: 10,
+  },
+  inputLabel: {
+    fontSize: 12,
+    color: colors.primary,
+    marginBottom: 4,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 14,
+    color: colors.primary,
+    backgroundColor: '#f9f9f9',
+  },
+  datePickerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 5,
+  },
+  datePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    padding: 12,
+    flex: 1,
+    marginHorizontal: 4,
+    justifyContent: 'center',
+  },
+  datePickerText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: colors.primary,
+  },
+  dateArrow: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginHorizontal: 5,
+  },
+
+  confirmButton: {
+    backgroundColor: colors.primary,
+    borderRadius: 40,
+    paddingVertical: 15,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  confirmButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });
 
 export default DetailApartmentScreen;
