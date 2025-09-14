@@ -3,11 +3,10 @@ import { useAuth } from '@/context/AuthContext';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useNavigation } from '@react-navigation/native';
 import { router } from 'expo-router';
-import React from 'react';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import LoginScreen from '../auth/login';
-import SearchScreen from '../search/search';
 import HomeScreen from './home';
+import LokasiList from './kossan/lokasilist';
 import ProductList from './product/product';
 import ProfileScreen from './profile/profile';
 
@@ -24,7 +23,7 @@ export default function Main() {
         tabBarIcon: ({ color, size }) => {
           let iconName: string = 'home';
           if (route.name === 'Home') iconName = 'home';
-          else if (route.name === 'Search') iconName = 'search';
+          else if (route.name === 'Kossan') iconName = 'home';
           else if (route.name === 'Toko') iconName = 'store';
           else if (route.name === 'Account') iconName = 'person-outline';
 
@@ -35,7 +34,7 @@ export default function Main() {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Search" component={SearchScreen} />
+      <Tab.Screen name="Kossan" component={LokasiList} />
       <Tab.Screen name="Toko" component={ProductList} />
 
       <Tab.Screen

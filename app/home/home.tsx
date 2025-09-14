@@ -1,78 +1,29 @@
-import CustomButton from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
+import { FilterState, useKosData } from '@/hooks/kossan';
 import { Lokasi } from '@/models/lokasi';
 import { User } from '@/models/user';
 import { getLokasi } from '@/service/home_service';
 import { getUsers } from '@/service/user_service';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+
+import FilterModal from '@/components/ui/modal_serach';
+import { colors } from '@/constants/colors';
+import { Fasilitas, Kamar } from '@/models/kossan';
 import {
   Dimensions,
   FlatList,
   Image,
-  ScrollView,
+  ImageBackground,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { colors } from '../../constants/colors';
 
 const { width } = Dimensions.get('window');
-
-// Dummy Promo
-const promoData = [
-  { id: '1', image: { uri: 'https://picsum.photos/300/150?random=11' } },
-  { id: '2', image: { uri: 'https://picsum.photos/300/150?random=12' } },
-];
-
-// Dummy Near You
-const nearYouData = [
-  {
-    id: '1',
-    name: 'Hilux Village',
-    subTitle: 'jalan roti bakar',
-    distance: '1.8 km',
-    image: { uri: 'https://picsum.photos/100?random=21' },
-  },
-  {
-    id: '2',
-    name: 'Kedaton BSB',
-    distance: '1.6 km',
-    subTitle: 'jalan roti bakar',
-    image: { uri: 'https://picsum.photos/100?random=22' },
-  },
-  {
-    id: '3',
-    name: 'Beranda',
-    subTitle: 'jalan roti bakar',
-    distance: '3 km',
-    image: { uri: 'https://picsum.photos/100?random=23' },
-  },
-];
-
-// Render Item for Promo section
-const renderPromoItem = ({ item }: { item: (typeof promoData)[0] }) => (
-  <View style={styles.promoItemContainer}>
-    <Image source={item.image} style={styles.promoImage} />
-  </View>
-);
-
-// Render Item for Near You section
-const renderNearYouItem = ({ item }: { item: (typeof nearYouData)[0] }) => (
-  <View style={styles.nearYouCard}>
-    <Image source={item.image} style={styles.nearYouImage} />
-    <View style={styles.distanceBadge}>
-      <Text style={styles.distanceText}>{item.distance}</Text>
-    </View>
-    <View>
-      <Text style={styles.cardTitle}>{item.name}</Text>
-      <Text style={styles.subTitle}>{item.subTitle}</Text>
-    </View>
-  </View>
-);
 
 // Handle card press
 const handleCardPress = (itemName: string) => {
@@ -82,26 +33,81 @@ const handleCardPress = (itemName: string) => {
   });
 };
 
-// Render Item for Lokasi section
+// Render Item untuk Lokasi
 const renderLokasiItem = ({ item }: { item: Lokasi }) => (
   <TouchableOpacity onPress={() => handleCardPress(item.nama)}>
-    <View style={styles.recommendedCard}>
-      <Image
-        source={{ uri: `https://picsum.photos/300/150?random=${item.id.toString()}` }}
-        style={styles.recommendedImage}
-      />
-      <View style={styles.recommendedDetails}>
+    <View style={styles.card}>
+      <ImageBackground
+        source={require('../../assets/images/onboarding.png')}
+        style={styles.image}
+        imageStyle={{ borderRadius: 20 }}
+      >
+        <View style={styles.overlay} />
         <Text style={styles.cardTitle}>{item.nama}</Text>
-      </View>
+      </ImageBackground>
     </View>
   </TouchableOpacity>
 );
 
-// Main Component
-const HomeScreen = ({ navigation }: any) => {
+// Render Item untuk Kos
+const renderKosItem = ({ item }: { item: Kamar }) => (
+  <View style={styles.kosCard}>
+    <Image
+      source={{
+        uri:
+          item.gallery && item.gallery.length > 0
+            ? item.gallery[0].url
+            : 'https://picsum.photos/100',
+      }}
+      style={styles.kosImage}
+    />
+    <View style={styles.kosInfo}>
+      <Text style={styles.kosTitle}>{item.nama_kamar}</Text>
+
+      <View style={styles.facilityRow}>
+        {Array.isArray(item.fasilitas) ? (
+          item.fasilitas.slice(0, 4).map((fasilitas: Fasilitas | string, index: number) => (
+            <View key={index} style={styles.facilityBadge}>
+              <Text style={styles.facilityText}>
+                {typeof fasilitas === 'string' ? fasilitas : fasilitas.nama}
+              </Text>
+            </View>
+          ))
+        ) : item.fasilitas ? (
+          <View style={styles.facilityBadge}>
+            <Text style={styles.facilityText}>
+              {typeof item.fasilitas === 'string' ? item.fasilitas : item.fasilitas}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
+      <Text style={styles.kosPrice}>
+        Rp {item.paket_harga?.perharian_harga?.toLocaleString() ?? 0}/bulan
+      </Text>
+    </View>
+  </View>
+);
+
+const HomeScreen = () => {
   const { token } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [lokasi, setLokasi] = useState<Lokasi[]>([]);
+  const [isFilterModalVisible, setFilterModalVisible] = useState(false);
+
+  const [activeFilters, setActiveFilters] = useState<FilterState>({
+    location: '',
+    time: '',
+    gender: '',
+    facilities: [],
+    minPrice: 0,
+    maxPrice: 10000000,
+    search: '',
+    checkInDate: null,
+    checkOutDate: null,
+  });
+
+  const { kosData } = useKosData(activeFilters);
 
   useEffect(() => {
     const fetchLokasi = async () => {
@@ -127,8 +133,12 @@ const HomeScreen = ({ navigation }: any) => {
     })();
   }, [token]);
 
-  return (
-    <ScrollView style={styles.container}>
+  const handleApplyFilter = (filters: FilterState) => {
+    setActiveFilters(filters);
+  };
+
+  const renderHeader = () => (
+    <View>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.greeting}>{user?.nama || ''}</Text>
@@ -138,66 +148,35 @@ const HomeScreen = ({ navigation }: any) => {
           </TouchableOpacity>
         )}
       </View>
+      <Text style={styles.subtitle}>Search for available apartments</Text>
+      <View style={{ height: 20 }} />
 
       {/* Status inactive */}
       {user?.status === 'inactive' && (
-        <View>
-          <Text style={styles.subtitle}>
-            Akun mu belum diaktifasi, yuk aktivasi pada menu pengaturan
-          </Text>
-          <CustomButton
-            onPress={() => router.push('/home/profile/profileuser/profileuser')}
-            title="Verifikasi"
-          />
-        </View>
+        <TouchableOpacity onPress={() => router.push('/home/profile/profileuser/profileuser')}>
+          <View style={styles.containerAktif}>
+            <Text style={styles.subtitle}>Akun mu belum aktif, silakan hubungi admin,</Text>
+            <Text style={[styles.subtitle, { color: 'green', fontWeight: 'bold' }]}>
+              Klik disini
+            </Text>
+          </View>
+        </TouchableOpacity>
       )}
 
       {/* Search */}
-      <TouchableOpacity onPress={() => navigation.navigate('Search')}>
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            readOnly={true}
-            placeholder="Search"
-            placeholderTextColor="#1B563A"
-          />
-          <TouchableOpacity
-            style={styles.filterButton}
-            onPress={() => navigation.navigate('Search')}
-          >
-            <Icon name="menu" size={24} color="#fff" />
-          </TouchableOpacity>
+      <View style={styles.containerSearch}>
+        <View style={styles.textContainer}>
+          <Text style={styles.title}>Select Location</Text>
+          <Text style={styles.subtitle}>add dates • add guest • nightly budget</Text>
         </View>
-      </TouchableOpacity>
-
-      {/* Promo Section */}
-      <Text style={styles.sectionTitle}>Promo</Text>
-      <FlatList
-        data={promoData}
-        renderItem={renderPromoItem}
-        keyExtractor={(item) => item.id}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        snapToInterval={width * 0.8 + 20}
-        decelerationRate="fast"
-      />
-
-      {/* Near from you Section */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Near from you</Text>
-        <Text style={styles.seeMore}>See more</Text>
+        <TouchableOpacity style={styles.iconContainer} onPress={() => setFilterModalVisible(true)}>
+          <Ionicons name="search" size={20} color="white" />
+        </TouchableOpacity>
       </View>
-      <FlatList
-        data={nearYouData}
-        renderItem={renderNearYouItem}
-        keyExtractor={(item) => item.id}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-      />
 
-      {/* Recommended for you Section (pakai data lokasi API) */}
+      {/* Lokasi Kos */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Recommended for you</Text>
+        <Text style={styles.sectionTitle}>Lokasi Kos</Text>
         <Text style={styles.seeMore}>See more</Text>
       </View>
       <FlatList
@@ -208,19 +187,43 @@ const HomeScreen = ({ navigation }: any) => {
         showsHorizontalScrollIndicator={false}
       />
 
-      <View style={{ height: 100 }} />
-    </ScrollView>
+      {/* Kamar Kos Header */}
+      <View style={{ height: 10 }} />
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Kamar Kos Terbaru</Text>
+        <Text style={styles.seeMore}>See more</Text>
+      </View>
+    </View>
+  );
+
+  return (
+    <>
+      <FlatList
+        data={kosData}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={renderKosItem}
+        ListHeaderComponent={renderHeader}
+        contentContainerStyle={{ padding: 20, backgroundColor: '#F9FAFB', paddingBottom: 100 }}
+      />
+
+      {/* Filter Modal */}
+      <FilterModal
+        isVisible={isFilterModalVisible}
+        onClose={() => setFilterModalVisible(false)}
+        onApplyFilter={handleApplyFilter}
+        initialFilters={activeFilters}
+      />
+    </>
   );
 };
 
-// Styles
 const styles = StyleSheet.create({
+  container: { flex: 1, padding: 20, backgroundColor: '#F9FAFB' },
   header: {
     marginTop: 50,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
   },
   greeting: { fontSize: 20, fontWeight: '600' },
   notifButton: {
@@ -228,95 +231,91 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     backgroundColor: '#E5E7EB',
   },
-  container: { flex: 1, padding: 20, backgroundColor: '#F9FAFB' },
-  subtitle: { fontSize: 12, color: '#EF4444', marginBottom: 10 },
-  searchContainer: { flexDirection: 'row', marginVertical: 10, alignItems: 'center' },
-  searchInput: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    height: 48,
-    color: '#1F2937',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  filterButton: {
-    marginLeft: 10,
-    backgroundColor: '#0f172a',
-    padding: 12,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  sectionTitle: {
-    marginVertical: 15,
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#000000',
-  },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  seeMore: { fontSize: 12, color: '#0f172a' },
-
-  // Promo Styles
-  promoItemContainer: {
-    width: width * 0.8,
-    marginRight: 15,
-  },
-  promoImage: {
-    width: '100%',
-    height: 150,
-    borderRadius: 10,
-    elevation: 1,
-  },
-
-  // Card Styles
-  nearYouCard: {
-    justifyContent: 'space-around',
-    marginRight: 15,
-    width: 150,
-    height: 211,
-    backgroundColor: '#fff',
-    borderRadius: 12,
+  containerAktif: {
+    flexDirection: 'row',
+    backgroundColor: '#FF000080',
     padding: 8,
   },
-  nearYouImage: { width: '100%', height: 100, borderRadius: 10 },
-  distanceBadge: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  distanceText: { color: '#fff', fontSize: 10, fontWeight: '500' },
-  cardTitle: { marginTop: 5, fontSize: 14, fontWeight: '600', color: '#1F2937' },
-  subTitle: { fontSize: 8, fontWeight: '400', color: colors.primary },
-
-  // Recommended Card Styles
-  recommendedCard: {
+  containerSearch: {
     flexDirection: 'row',
-    marginRight: 15,
+    alignItems: 'center',
+    backgroundColor: 'white',
+    borderRadius: 30,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    margin: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  textContainer: { flex: 1 },
+  title: {
+    fontFamily: 'Raleway',
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#000',
+  },
+  subtitle: {
+    fontFamily: 'Raleway',
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#000',
+  },
+  iconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  sectionTitle: { marginVertical: 15, fontSize: 16, fontWeight: '500', color: '#000' },
+  seeMore: { fontSize: 12, color: '#0f172a' },
+  card: {
+    width: 160,
+    height: 200,
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginRight: 22,
+  },
+  image: { flex: 1, justifyContent: 'flex-end' },
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.3)' },
+  cardTitle: { fontSize: 18, fontWeight: '600', color: '#fff', padding: 12, paddingBottom: 20 },
+
+  // Kos Card
+  kosCard: {
+    flexDirection: 'row',
     backgroundColor: '#fff',
     borderRadius: 12,
+    marginBottom: 16,
     padding: 12,
-    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    elevation: 2,
   },
-  recommendedImage: { width: 100, height: 100, borderRadius: 10 },
-  recommendedDetails: { marginLeft: 10, flex: 1 },
-  cardDetails: { fontSize: 12, color: '#6B7280', marginVertical: 2 },
-  cardPrice: { fontSize: 14, fontWeight: 'bold', color: '#0f172a' },
+  kosImage: { width: 90, height: 90, borderRadius: 12 },
+  kosInfo: { flex: 1, paddingLeft: 12, justifyContent: 'center' },
+  kosTitle: { fontSize: 16, fontWeight: '600', marginBottom: 6 },
+  facilityRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 },
+  facilityBadge: {
+    backgroundColor: '#f3f3f3',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    marginRight: 4,
+    marginBottom: 4,
+  },
+  facilityText: { fontSize: 10, color: '#555' },
+  kosPrice: { fontSize: 14, fontWeight: '700', color: 'green' },
 });
 
 export default HomeScreen;

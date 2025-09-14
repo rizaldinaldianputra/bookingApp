@@ -1,5 +1,4 @@
 import { View } from 'react-native';
-import { WebView } from 'react-native-webview';
 
 export default function OSMMap() {
   const BOGOR_LATITUDE = -6.595038;
@@ -27,9 +26,5 @@ export default function OSMMap() {
     </html>
   `;
 
-  return (
-    <View style={{ flex: 1 }}>
-      <WebView originWhitelist={['*']} source={{ html }} />
-    </View>
-  );
+  return <View style={{ flex: 1 }}></View>;
 }

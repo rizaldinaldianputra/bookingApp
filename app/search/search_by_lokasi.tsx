@@ -1,6 +1,6 @@
 // search_by_lokasi.tsx
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { colors } from '../../constants/colors';
 
 import {
@@ -69,31 +69,18 @@ const renderRecommendedItem = ({ item }: { item: Kamar }) => {
 
   return (
     <TouchableOpacity onPress={() => router.push(`/home/kossan/detail?id=${item.id}`)}>
-      <View style={styles.recommendedCard}>
-        <Image source={{ uri: imageUrl }} style={styles.recommendedImage} />
-        <View style={styles.recommendedDetails}>
-          <Text style={styles.cardTitle}>{item.nama_kamar}</Text>
-          <View style={styles.labelContainer}>
-            {item.tipe_kos && (
-              <View key={item.tipe_kos} style={styles.labelBadge}>
-                <Text style={styles.labelText}>{item.tipe_kos}</Text>
-              </View>
-            )}
-            {item.jenis_kos && (
-              <View key={item.jenis_kos} style={styles.labelBadge}>
-                <Text style={styles.labelText}>{item.jenis_kos}</Text>
-              </View>
-            )}
-            {facilitiesArray.slice(0, 1).map((facility, index) => (
-              <View key={`fac-${index}`} style={styles.labelBadge}>
-                <Text style={styles.labelText}>{facility}</Text>
-              </View>
-            ))}
-          </View>
-          <View>
-            <Text style={styles.cardPrice}>Rp {displayedPrice.toLocaleString('id-ID')}</Text>
-            <Text style={styles.cardMonth}>{'Bulan'}</Text>
-          </View>
+      <View style={styles.card}>
+        <Image source={require('../../assets/images/onboarding.png')} style={styles.image} />
+        {/* Tombol melayang */}
+        <TouchableOpacity
+          onPress={() => router.push('/home/kossan/kamarlist')}
+          style={styles.floatingButton}
+        >
+          <Text style={styles.buttonText}>Lihat Kamar</Text>
+        </TouchableOpacity>
+        <View style={styles.cardContent}>
+          <Text style={styles.title}>{item.nama_kamar}</Text>
+          <Text style={styles.rooms}>{item.nama_kamar} Kamar tersedia</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -488,37 +475,22 @@ export default function SearchByLokasiScreen() {
 
   return (
     <View style={styles.fullScreenContainer}>
-      <View style={styles.searchHeader}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Icon name="arrow-back" size={24} color="#1F2937" />
+      <View style={{ height: 70 }} />
+
+      <Text style={styles.header}>List Kos Semarang</Text>
+      <View style={styles.searchContainer}>
+        <TextInput
+          placeholder="Cari Lokasi Kos Lainnya..."
+          placeholderTextColor="#9CA3AF"
+          value={activeFilters.search}
+          onChangeText={handleSearchChange}
+          returnKeyType="search"
+          onSubmitEditing={() => fetchKosData(1, activeFilters, true)}
+          style={styles.searchInput}
+        />
+        <TouchableOpacity style={styles.searchButton}>
+          <Text style={styles.searchButtonText}>Telusuri</Text>
         </TouchableOpacity>
-
-        <Text style={styles.headerTitle}>{name}</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      <View style={styles.searchBarContainer}>
-        <View style={styles.searchBox}>
-          <Icon name="search" size={20} color="#9CA3AF" style={{ marginRight: 8 }} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Cari kos..."
-            placeholderTextColor="#9CA3AF"
-            value={activeFilters.search}
-            onChangeText={handleSearchChange}
-            returnKeyType="search"
-            onSubmitEditing={() => fetchKosData(1, activeFilters, true)}
-          />
-        </View>
-        <TouchableOpacity style={styles.filterButton} onPress={() => setFilterModalVisible(true)}>
-          <Icon name="options-outline" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.filtersContainer}>
-        {getActiveFilterLabels().map((label, index) => (
-          <FilterBadge key={index} label={label} onClose={() => removeFilter(label)} />
-        ))}
       </View>
 
       <FlatList
@@ -550,6 +522,78 @@ export default function SearchByLokasiScreen() {
 
 // Stylesheet
 const styles = StyleSheet.create({
+  card: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: 16,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  image: {
+    width: '100%',
+    height: 180,
+  },
+  cardContent: {
+    padding: 12,
+  },
+  title: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  rooms: {
+    color: '#555',
+    marginBottom: 8,
+  },
+  floatingButton: {
+    position: 'absolute',
+    bottom: 12,
+    right: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  buttonText: {
+    fontWeight: 'bold',
+  },
+  searchInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
+    marginRight: 8,
+  },
+  searchButton: {
+    backgroundColor: '#1D4D3C',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+  },
+  searchButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  header: {
+    backgroundColor: '#1D4D3C',
+    color: '#fff',
+    textAlign: 'center',
+    padding: 12,
+    borderRadius: 12,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    margin: 10,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    marginHorizontal: 10,
+  },
   fullScreenContainer: { flex: 1, backgroundColor: '#F9FAFB' },
   containerPrice: { alignItems: 'center', marginHorizontal: 5 },
   rangePrice: {
@@ -605,7 +649,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  searchInput: { flex: 1, color: '#1F2937', paddingVertical: 0 },
   filterButton: {
     marginLeft: 10,
     backgroundColor: '#0f172a',

@@ -39,6 +39,9 @@
         "projectId": "2b6140b8-736a-48b3-a58c-5319fe4773f8"
       }
     },
-    "owner": "rizaldinp"
+    "owner": "rizaldinp",
+    "plugins": [
+      "expo-router"
+    ]
   }
 }

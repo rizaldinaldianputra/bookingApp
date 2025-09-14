@@ -33,10 +33,15 @@ export default function RootLayout() {
                 'home/profile/profileuser/profileuser',
                 'home/profile/pembelian/pembelian_list',
                 'home/profile/pembelian/pembelian_detail',
+                'home/kossan/kamarlist',
+                'home/kossan/kossanlist',
+                'home/kossan/lokasilist',
+                ,
                 'home/kossan/detail',
                 'home/product/product_detail',
                 'search/search_by_lokasi',
                 'auth/register',
+                '',
               ];
               return {
                 headerShown: !hideHeaderScreens.includes(route.name),
