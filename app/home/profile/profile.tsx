@@ -24,7 +24,6 @@ const ProfileScreen = () => {
     })();
   }, []);
   const navigation = useNavigation();
-  console.log(`${BASE_URL}/img/user/${user?.id?.toString()}/gambarktp/${user?.fotoselfie}`);
   return (
     <View style={styles.container}>
       {/* Header */}

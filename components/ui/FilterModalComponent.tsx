@@ -1,10 +1,10 @@
-import { colors } from '@/constants/colors'; // Pastikan path ini benar untuk proyek Anda
+import { colors } from '@/constants/colors';
+import { Fasilitas, FasilitasResponse } from '@/models/fasilistas';
+import { Lokasi, LokasiResponse } from '@/models/lokasi';
+import { getFasilitas } from '@/service/fasilitas_service';
+import { getLokasi } from '@/service/lokasi_service';
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
-
-import { Fasilitas, FasilitasResponse } from '@/models/fasilistas'; // Pastikan path ini benar
-import { Lokasi, LokasiResponse } from '@/models/lokasi'; // Pastikan path ini benar
-import { getFasilitas } from '@/service/fasilitas_service'; // Pastikan path ini benar
-import { getLokasi } from '@/service/lokasi_service'; // Pastikan path ini benar
 import {
   Dimensions,
   Modal,
@@ -14,18 +14,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import Icon from 'react-native-vector-icons/Ionicons';
 
-import { router } from 'expo-router';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
-
 export interface FilterState {
-  location: string;
-  time: string;
-  gender: string;
-  search: string;
-  checkInDate: string | null;
-  checkOutDate: string | null;
+  daerah: string;
+  durasi: string;
+  jenis: string;
+  start_date: string | null;
+  end_date: string | null;
 }
 
 const { width } = Dimensions.get('window');
@@ -34,35 +31,33 @@ interface FilterModalProps {
   isVisible: boolean;
   onClose: () => void;
   onApplyFilter: (filters: FilterState) => void;
-  initialFilters: FilterState;
+  initialFilters?: FilterState;
 }
 
 const FilterModalComponent = ({
   isVisible,
   onClose,
   onApplyFilter,
-  initialFilters,
+  initialFilters = { daerah: '', durasi: '', jenis: '', start_date: null, end_date: null },
 }: FilterModalProps) => {
   const [lokasi, setLokasi] = useState<Lokasi[]>([]);
   const [fasilitas, setFasilitas] = useState<Fasilitas[]>([]);
-  const [selectedLocation, setSelectedLocation] = useState(initialFilters.location);
-  const [selectedTime, setSelectedTime] = useState(initialFilters.time);
-  const [selectedGender, setSelectedGender] = useState(initialFilters.gender);
-  const [checkInDate, setCheckInDate] = useState<string | null>(initialFilters.checkInDate);
-  const [checkOutDate, setCheckOutDate] = useState<string | null>(initialFilters.checkOutDate);
+  const [selectedLocation, setSelectedLocation] = useState(initialFilters?.daerah || '');
+  const [selectedDurasi, setSelectedDurasi] = useState(initialFilters?.durasi || '');
+  const [selectedJenis, setSelectedJenis] = useState(initialFilters?.jenis || '');
+  const [start_date, setstart_date] = useState<string | null>(initialFilters?.start_date || null);
+  const [end_date, setend_date] = useState<string | null>(initialFilters?.end_date || null);
 
   const [isCheckInPickerVisible, setIsCheckInPickerVisible] = useState(false);
   const [isCheckOutPickerVisible, setIsCheckOutPickerVisible] = useState(false);
 
   useEffect(() => {
-    // Sinkronkan state lokal dengan initialFilters setiap kali isVisible atau initialFilters berubah
     if (isVisible) {
-      setSelectedLocation(initialFilters.location);
-      setSelectedTime(initialFilters.time);
-      setSelectedGender(initialFilters.gender);
-
-      setCheckInDate(initialFilters.checkInDate);
-      setCheckOutDate(initialFilters.checkOutDate);
+      setSelectedLocation(initialFilters?.daerah || '');
+      setSelectedDurasi(initialFilters?.durasi || '');
+      setSelectedJenis(initialFilters?.jenis || '');
+      setstart_date(initialFilters?.start_date || null);
+      setend_date(initialFilters?.end_date || null);
     }
 
     const fetchData = async () => {
@@ -81,28 +76,32 @@ const FilterModalComponent = ({
 
   const handleReset = () => {
     setSelectedLocation('');
-    setSelectedTime('');
-    setSelectedGender('');
-
-    setCheckInDate(null);
-    setCheckOutDate(null);
+    setSelectedDurasi('');
+    setSelectedJenis('');
+    setstart_date(null);
+    setend_date(null);
   };
 
   const handleApply = () => {
-    const filterData = {
-      location: selectedLocation,
-      time: selectedTime,
-      gender: selectedGender,
-      search: initialFilters.search,
-      checkInDate: checkInDate,
-      checkOutDate: checkOutDate,
+    const filterData: FilterState = {
+      daerah: selectedLocation,
+      durasi: selectedDurasi,
+      jenis: selectedJenis,
+      start_date,
+      end_date,
     };
 
     onApplyFilter(filterData);
 
-    // Ubah object filter menjadi query string
-    const queryString = new URLSearchParams(filterData as any).toString();
+    // Hanya kirim yang punya value dan bukan string kosong
+    const filteredParams: Record<string, string> = {};
+    Object.entries(filterData).forEach(([key, value]) => {
+      if (value && typeof value === 'string' && value.trim() !== '') {
+        filteredParams[key] = value;
+      }
+    });
 
+    const queryString = new URLSearchParams(filteredParams).toString();
     router.push(`/home/kossan/kamarlist_filter?${queryString}`);
     onClose();
   };
@@ -110,22 +109,22 @@ const FilterModalComponent = ({
   const today = new Date();
 
   const handleConfirmCheckIn = (date: Date) => {
-    setCheckInDate(date.toISOString().split('T')[0]);
+    const selected = date.toISOString().split('T')[0];
+    setstart_date(selected);
+    // jika end_date < start_date, otomatis set end_date = start_date
+    if (!end_date || new Date(end_date) < date) setend_date(selected);
     setIsCheckInPickerVisible(false);
   };
 
   const handleConfirmCheckOut = (date: Date) => {
-    setCheckOutDate(date.toISOString().split('T')[0]);
+    setend_date(date.toISOString().split('T')[0]);
     setIsCheckOutPickerVisible(false);
   };
 
-  const hideCheckInPicker = () => {
-    setIsCheckInPickerVisible(false);
-  };
+  const hideCheckInPicker = () => setIsCheckInPickerVisible(false);
+  const hideCheckOutPicker = () => setIsCheckOutPickerVisible(false);
 
-  const hideCheckOutPicker = () => {
-    setIsCheckOutPickerVisible(false);
-  };
+  const durasiOptions = ['Perharian', 'Perbulan', 'Pertigabulan', 'Perenambulan', 'Pertahun'];
 
   return (
     <Modal animationType="slide" transparent={true} visible={isVisible} onRequestClose={onClose}>
@@ -135,23 +134,21 @@ const FilterModalComponent = ({
             <Text style={styles.modalTitle}>Filter</Text>
 
             <DateTimePickerModal
-              isVisible={isCheckOutPickerVisible}
-              mode="date"
-              onConfirm={handleConfirmCheckOut}
-              onCancel={hideCheckOutPicker}
-              minimumDate={checkInDate ? new Date(checkInDate) : undefined} // Biarkan minimumDate null jika checkInDate belum dipilih
-              date={
-                checkOutDate ? new Date(checkOutDate) : checkInDate ? new Date(checkInDate) : today
-              }
-            />
-
-            <DateTimePickerModal
               isVisible={isCheckInPickerVisible}
               mode="date"
               onConfirm={handleConfirmCheckIn}
               onCancel={hideCheckInPicker}
-              // minimumDate={today} // Hapus batasan minimumDate agar tidak ada batasan tanggal mundur
-              date={checkInDate ? new Date(checkInDate) : today}
+              date={start_date ? new Date(start_date) : today}
+              maximumDate={today}
+            />
+
+            <DateTimePickerModal
+              isVisible={isCheckOutPickerVisible}
+              mode="date"
+              onConfirm={handleConfirmCheckOut}
+              onCancel={hideCheckOutPicker}
+              minimumDate={start_date ? new Date(start_date) : today}
+              date={end_date ? new Date(end_date) : start_date ? new Date(start_date) : today}
             />
 
             <Text style={styles.filterSectionTitle}>Lokasi</Text>
@@ -174,58 +171,52 @@ const FilterModalComponent = ({
               ))}
             </View>
 
-            <Text style={styles.filterSectionTitle}>Waktu</Text>
+            <Text style={styles.filterSectionTitle}>Durasi</Text>
             <View style={styles.filterChipContainer}>
-              {['Perbulan', '3 Bulan', '6 Bulan', 'Pertahun', 'Harian'].map((time) => (
+              {durasiOptions.map((durasi) => (
                 <TouchableOpacity
-                  key={time}
-                  style={[styles.chip, selectedTime === time && styles.chipSelected]}
-                  onPress={() => setSelectedTime(time)}
-                >
-                  <Text style={[styles.chipText, selectedTime === time && styles.chipTextSelected]}>
-                    {time}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <Text style={styles.filterSectionTitle}>Gender</Text>
-            <View style={styles.filterChipContainer}>
-              {['Pria', 'Wanita', 'Pria/Wanita'].map((gender) => (
-                <TouchableOpacity
-                  key={gender}
-                  style={[styles.chip, selectedGender === gender && styles.chipSelected]}
-                  onPress={() => setSelectedGender(gender)}
+                  key={durasi}
+                  style={[styles.chip, selectedDurasi === durasi && styles.chipSelected]}
+                  onPress={() => setSelectedDurasi(durasi)}
                 >
                   <Text
-                    style={[styles.chipText, selectedGender === gender && styles.chipTextSelected]}
+                    style={[styles.chipText, selectedDurasi === durasi && styles.chipTextSelected]}
                   >
-                    {gender}
+                    {durasi}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-            <Text style={styles.filterSectionTitle}>Rentang Tanggal</Text>
 
-            <View
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {/* Tanggal Masuk */}
+            <Text style={styles.filterSectionTitle}>Jenis</Text>
+            <View style={styles.filterChipContainer}>
+              {['Pria', 'Wanita', 'Campur'].map((jenis) => (
+                <TouchableOpacity
+                  key={jenis}
+                  style={[styles.chip, selectedJenis === jenis && styles.chipSelected]}
+                  onPress={() => setSelectedJenis(jenis)}
+                >
+                  <Text
+                    style={[styles.chipText, selectedJenis === jenis && styles.chipTextSelected]}
+                  >
+                    {jenis}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.filterSectionTitle}>Rentang Tanggal</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
               <TouchableOpacity
                 style={[styles.dateButton, styles.dateButtonSolid]}
                 onPress={() => setIsCheckInPickerVisible(true)}
               >
                 <Icon name="calendar-outline" size={20} color="#fff" style={{ marginRight: 6 }} />
                 <Text style={[styles.dateButtonText, { color: '#fff' }]}>
-                  {checkInDate ? checkInDate : 'Tanggal Masuk'}
+                  {start_date ? start_date : 'Tanggal Masuk'}
                 </Text>
               </TouchableOpacity>
 
-              {/* Panah → */}
               <Icon
                 name="arrow-forward"
                 size={20}
@@ -233,7 +224,6 @@ const FilterModalComponent = ({
                 style={{ marginHorizontal: 12 }}
               />
 
-              {/* Tanggal Keluar */}
               <TouchableOpacity
                 style={[styles.dateButton, styles.dateButtonOutline]}
                 onPress={() => setIsCheckOutPickerVisible(true)}
@@ -245,7 +235,7 @@ const FilterModalComponent = ({
                   style={{ marginRight: 6 }}
                 />
                 <Text style={[styles.dateButtonText, { color: '#166534' }]}>
-                  {checkOutDate ? checkOutDate : 'Tanggal Keluar'}
+                  {end_date ? end_date : 'Tanggal Keluar'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -282,139 +272,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 8,
   },
-
-  dateButtonSolid: {
-    backgroundColor: '#166534', // hijau solid
-  },
-
-  dateButtonOutline: {
-    borderWidth: 1,
-    borderColor: '#166534', // hijau outline
-    backgroundColor: 'transparent',
-  },
-
-  dateButtonText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  fullScreenContainer: { flex: 1, backgroundColor: '#F9FAFB' },
-  containerPrice: { alignItems: 'center', marginHorizontal: 5 },
-  rangePrice: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: 10,
-    marginTop: 10,
-  },
-  priceBox: {
-    borderRadius: 18,
-    backgroundColor: '#F8F8F8',
-    borderWidth: 1,
-    borderColor: 'rgba(222, 222, 222, 1.0)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    minWidth: 100,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  searchHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    paddingTop: 50,
-    backgroundColor: '#fff',
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  headerTitle: { fontSize: 18, fontWeight: '600', color: '#1F2937' },
-  searchBarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginTop: 20,
-  },
-  searchBox: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    height: 48,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  searchInput: { flex: 1, color: '#1F2937', paddingVertical: 0 },
-  filterButton: {
-    marginLeft: 10,
-    backgroundColor: '#0f172a',
-    padding: 12,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  filtersContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 20,
-    marginTop: 10,
-    flexWrap: 'wrap',
-  },
-  filterBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#D4F6E6',
-    borderRadius: 15,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    marginRight: 8,
-    marginBottom: 8,
-  },
-  filterBadgeText: { fontSize: 10, fontWeight: '600', color: '#4F8B6E' },
-  recommendedCard: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    marginBottom: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  recommendedImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 10,
-    marginRight: 10,
-    resizeMode: 'cover',
-  },
-  recommendedDetails: { flex: 1 },
-  cardTitle: { fontSize: 16, fontWeight: '600', color: '#1F2937', marginBottom: 5 },
-  labelContainer: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
-  labelBadge: {
-    backgroundColor: '#F3F3F3',
-    borderRadius: 5,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginRight: 4,
-    marginBottom: 4,
-  },
-  labelText: { fontSize: 10, fontWeight: '400', color: '#949494' },
-  cardMonth: { fontSize: 10, fontWeight: '400', color: '#121212' },
-  cardPrice: { fontSize: 16, fontWeight: '700', color: colors.primary },
+  dateButtonSolid: { backgroundColor: '#166534' },
+  dateButtonOutline: { borderWidth: 1, borderColor: '#166534', backgroundColor: 'transparent' },
+  dateButtonText: { fontSize: 14, fontWeight: '500' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.5)', justifyContent: 'flex-end' },
   modalContent: {
     backgroundColor: '#F9FAFB',
@@ -439,7 +299,6 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingHorizontal: 20,
   },
-  filterRange: { fontSize: 12, fontWeight: '600', color: '#1F2937' },
   filterChipContainer: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 20 },
   chip: {
     backgroundColor: '#E5E7EB',
@@ -452,20 +311,6 @@ const styles = StyleSheet.create({
   chipSelected: { backgroundColor: colors.primary },
   chipText: { color: '#374151', fontWeight: '500' },
   chipTextSelected: { color: '#fff' },
-  facilityGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
-    paddingHorizontal: 20,
-  },
-  facilityCheckboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    width: '48%',
-    marginBottom: 10,
-    marginRight: '2%',
-  },
-  facilityText: { marginLeft: 8, color: '#374151', fontSize: 14 },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -491,29 +336,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   applyButtonText: { color: '#fff', fontWeight: 'bold' },
-  listContentContainer: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 20 },
-  footerLoader: { paddingVertical: 20, alignItems: 'center' },
-  emptyText: { textAlign: 'center', marginTop: 50, fontSize: 16, color: '#9CA3AF' },
-  dateInputContainer: {
+  filterBadge: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    height: 48,
-    marginHorizontal: 20,
-    marginTop: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    backgroundColor: '#D4F6E6',
+    borderRadius: 15,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 8,
+    marginBottom: 8,
   },
-  dateInputText: {
-    color: '#1F2937',
-    flex: 1,
-  },
+  filterBadgeText: { fontSize: 10, fontWeight: '600', color: '#4F8B6E' },
 });
 
 export default FilterModalComponent;

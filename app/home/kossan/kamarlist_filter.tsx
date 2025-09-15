@@ -1,12 +1,10 @@
 import { BASE_URL } from '@/constants/config';
 import { Fasilitas, Kamar } from '@/models/kossan';
 import { getKos } from '@/service/kossan_service';
-
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Dimensions,
   FlatList,
   Image,
   StyleSheet,
@@ -15,44 +13,32 @@ import {
   View,
 } from 'react-native';
 
-const screenWidth = Dimensions.get('window').width;
-
 const KamarListFilter = () => {
   const params = useLocalSearchParams();
 
-  const filterParams = useMemo(
-    () => ({
-      location: Array.isArray(params.location) ? params.location[0] : params.location || '',
-      time: Array.isArray(params.time) ? params.time[0] : params.time || '',
-      gender: Array.isArray(params.gender) ? params.gender[0] : params.gender || '',
-      search: Array.isArray(params.search) ? params.search[0] : params.search || '',
-      checkInDate: Array.isArray(params.checkInDate)
-        ? params.checkInDate[0]
-        : params.checkInDate || '',
-      checkOutDate: Array.isArray(params.checkOutDate)
-        ? params.checkOutDate[0]
-        : params.checkOutDate || '',
-      idKossan: Array.isArray(params.idKossan) ? params.idKossan[0] : params.idKossan || '',
-      namaKossan: Array.isArray(params.namaKossan) ? params.namaKossan[0] : params.namaKossan || '',
-    }),
-    [
-      params.location,
-      params.time,
-      params.gender,
-      params.search,
-      params.checkInDate,
-      params.checkOutDate,
-      params.idKossan,
-      params.namaKossan,
-    ],
-  );
-
+  // Ambil filter dari URL
+  // Mapping agar sesuai tipe GetKosParams
+  // Ambil filter dari URL
+  const filterParams = useMemo(() => {
+    const temp = {
+      daerah: Array.isArray(params.daerah) ? params.daerah[0] : params.daerah || '',
+      durasi: Array.isArray(params.durasi) ? params.durasi[0] : params.durasi || '',
+      jenis: Array.isArray(params.jenis) ? params.jenis[0] : params.jenis || '',
+      start_date: Array.isArray(params.start_date) ? params.start_date[0] : params.start_date || '',
+      end_date: Array.isArray(params.end_date) ? params.end_date[0] : params.end_date || '',
+    };
+    // Hanya simpan key yang punya value
+    const filtered: Record<string, string> = {};
+    Object.entries(temp).forEach(([key, value]) => {
+      if (value) filtered[key] = value;
+    });
+    return filtered;
+  }, [params.location, params.durasi, params.jenis, params.start_date, params.end_date]);
   const [kamarList, setKamarList] = useState<Kamar[]>([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     setLoading(true);
-    getKos({ ...filterParams })
+    getKos(filterParams)
       .then((res) => {
         if (res.success && res.data) {
           setKamarList(res.data);
@@ -110,7 +96,7 @@ const KamarListFilter = () => {
             onPress={() =>
               router.push({
                 pathname: '/home/kossan/detail',
-                params: { idKossan: filterParams.idKossan, idKamar: item.id.toString() },
+                params: { idKossan: item.kos.id, idKamar: item.id.toString() },
               })
             }
           >
@@ -132,7 +118,7 @@ const KamarListFilter = () => {
   return (
     <View style={styles.container}>
       <View style={{ height: 70 }} />
-      <Text style={styles.header}>List Kamar {filterParams.namaKossan}</Text>
+      <Text style={styles.header}>List Kamar</Text>
 
       <FlatList
         data={kamarList}
@@ -146,7 +132,7 @@ const KamarListFilter = () => {
 
 const styles = StyleSheet.create({
   facilityBox: {
-    backgroundColor: '#fff', // warna background
+    backgroundColor: '#fff',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 8,
