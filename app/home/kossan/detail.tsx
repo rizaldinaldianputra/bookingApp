@@ -109,25 +109,29 @@ const DetailApartmentScreen: React.FC = () => {
   };
 
   const handleBooking = () => {
-    const selectedPaketId = kosData?.paket_harga?.paket_id;
+    if (!token) {
+      router.replace('/auth/login');
+    } else {
+      const selectedPaketId = kosData?.paket_harga?.paket_id;
 
-    const bookingData = {
-      user_id: user?.id,
-      tanggal: new Date().toISOString().split('T')[0],
-      harga: selectedHarga,
-      quantity: 1,
-      start_order_date: tanggalCheckIn,
-      end_order_date: tanggalCheckOut,
-      kos_id: idKossan,
-      kamar_id: idKamar,
-      paket_id: selectedPaketId,
-    };
-    router.replace({
-      pathname: '/home/payment/payment',
-      params: bookingData,
-    });
+      const bookingData = {
+        user_id: user?.id,
+        tanggal: new Date().toISOString().split('T')[0],
+        harga: selectedHarga,
+        quantity: 1,
+        start_order_date: tanggalCheckIn,
+        end_order_date: tanggalCheckOut,
+        kos_id: idKossan,
+        kamar_id: idKamar,
+        paket_id: selectedPaketId,
+      };
+      router.replace({
+        pathname: '/home/payment/payment',
+        params: bookingData,
+      });
 
-    setVisible(false);
+      setVisible(false);
+    }
   };
 
   const handleConfirmCheckIn = (date: Date) => {

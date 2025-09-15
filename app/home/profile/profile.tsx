@@ -3,7 +3,7 @@ import { useAuth } from '@/context/AuthContext';
 import { User } from '@/models/user';
 import { getUsers } from '@/service/user_service';
 import { useNavigation, useRouter } from 'expo-router'; // gunakan hook ini
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import Ionicons from 'react-native-vector-icons/Ionicons';

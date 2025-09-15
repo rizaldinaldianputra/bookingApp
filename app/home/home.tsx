@@ -51,7 +51,14 @@ const renderLokasiItem = ({ item }: { item: Lokasi }) => (
 
 // Render Item untuk Kos
 const renderKosItem = ({ item }: { item: Kamar }) => (
-  <TouchableOpacity onPress={() => router.push(`/home/kossan/detail?id=${item.id}`)}>
+  <TouchableOpacity
+    onPress={() =>
+      router.push({
+        pathname: '/home/kossan/detail',
+        params: { idKossan: item.kos.id, idKamar: item.id.toString() },
+      })
+    }
+  >
     <View style={styles.kosCard}>
       <Image
         source={{
