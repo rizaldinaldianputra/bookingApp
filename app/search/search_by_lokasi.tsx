@@ -23,6 +23,7 @@ import { getFasilitas } from '../../service/fasilitas_service';
 import { getLokasi } from '../../service/lokasi_service'; // Pastikan ini tidak memerlukan parameter
 
 import { BASE_URL } from '@/constants/config';
+import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { KamarResponse as ApiKamarResponse, Kamar } from '../../models/kossan';
@@ -73,18 +74,18 @@ const renderRecommendedItem = ({ item }: { item: Kamar }) => {
     >
       <View style={styles.card}>
         <Image source={require('../../assets/images/onboarding.png')} style={styles.image} />
-        {/* Tombol melayang */}
-        <TouchableOpacity
-          onPress={() =>
-            router.push(`/home/kossan/kamarlist?id=${item.kos.id}&nama=${item.kos.nama}`)
-          }
-          style={styles.floatingButton}
-        >
-          <Text style={styles.buttonText}>Lihat Kamar</Text>
-        </TouchableOpacity>
+
         <View style={styles.cardContent}>
           <Text style={styles.title}>{item.nama_kamar}</Text>
           <Text style={styles.rooms}>{item.nama_kamar} Kamar tersedia</Text>
+          <TouchableOpacity
+            onPress={() =>
+              router.push(`/home/kossan/kamarlist?id=${item.kos.id}&nama=${item.kos.nama}`)
+            }
+            style={styles.floatingButton}
+          >
+            <Text style={styles.buttonText}>Lihat Kamar</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </TouchableOpacity>
@@ -480,6 +481,10 @@ export default function SearchByLokasiScreen() {
   return (
     <View style={styles.fullScreenContainer}>
       <View style={{ height: 70 }} />
+      <TouchableOpacity onPress={() => router.back()} style={{ paddingHorizontal: 10 }}>
+        <Ionicons name="arrow-back" size={24} color="black" />
+      </TouchableOpacity>
+      <View style={{ height: 10 }} />
 
       <Text style={styles.header}>{'List kos ' + name}</Text>
       <View style={styles.searchContainer}>

@@ -106,12 +106,11 @@ const HomeScreen = () => {
 
   // Gunakan FilterState yang diimpor dari FilterModalComponent
   const [activeFilters, setActiveFilters] = useState<FilterState>({
-    location: '',
-    time: '',
-    gender: '',
-    search: '',
-    checkInDate: null,
-    checkOutDate: null,
+    daerah: '',
+    durasi: '',
+    jenis: '',
+    start_date: null,
+    end_date: null,
   });
 
   const { kosData } = useKosData(activeFilters);

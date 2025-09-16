@@ -93,11 +93,11 @@ const FilterModalComponent = ({
 
     onApplyFilter(filterData);
 
-    // Hanya kirim yang punya value dan bukan string kosong
+    // Hanya kirim yang punya value valid (tidak null/undefined/kosong)
     const filteredParams: Record<string, string> = {};
     Object.entries(filterData).forEach(([key, value]) => {
-      if (value && typeof value === 'string' && value.trim() !== '') {
-        filteredParams[key] = value;
+      if (value != null && String(value).trim() !== '') {
+        filteredParams[key] = String(value);
       }
     });
 

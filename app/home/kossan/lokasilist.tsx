@@ -1,5 +1,6 @@
 import { Lokasi } from '@/models/lokasi';
 import { getLokasi } from '@/service/home_service';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -58,7 +59,9 @@ const LokasiList = () => {
   return (
     <View style={styles.container}>
       <View style={{ height: 50 }} />
-
+      <TouchableOpacity onPress={() => router.back()} style={{ paddingHorizontal: 10 }}>
+        <Ionicons name="arrow-back" size={24} color="black" />
+      </TouchableOpacity>
       <View style={styles.header}>
         <Text style={styles.headerText}>Lokasi Kos</Text>
       </View>

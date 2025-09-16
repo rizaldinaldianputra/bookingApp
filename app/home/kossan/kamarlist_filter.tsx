@@ -1,6 +1,7 @@
 import { BASE_URL } from '@/constants/config';
 import { Fasilitas, Kamar } from '@/models/kossan';
 import { getKos } from '@/service/kossan_service';
+import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -118,6 +119,10 @@ const KamarListFilter = () => {
   return (
     <View style={styles.container}>
       <View style={{ height: 70 }} />
+      <TouchableOpacity onPress={() => router.back()} style={{ paddingHorizontal: 10 }}>
+        <Ionicons name="arrow-back" size={24} color="black" />
+      </TouchableOpacity>
+      <View style={{ height: 10 }} />
       <Text style={styles.header}>List Kamar</Text>
 
       <FlatList

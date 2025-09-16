@@ -24,6 +24,7 @@ import { BASE_URL } from '@//constants/config';
 import { colors } from '@/constants/colors';
 import { KamarResponse as ApiKamarResponse, Kamar } from '@/models/kossan';
 import { getKos } from '@/service/kossan_service';
+import { Ionicons } from '@expo/vector-icons';
 import MultiSlider from '@ptomasroos/react-native-multi-slider';
 import { router, useLocalSearchParams, useNavigation } from 'expo-router';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
@@ -485,7 +486,10 @@ export default function SearchByLokasiScreen() {
     <View style={styles.fullScreenContainer}>
       <View style={{ height: 70 }} />
 
-      <Text style={styles.header}>{'List Kos ' + name}</Text>
+      <TouchableOpacity onPress={() => router.back()} style={{ paddingHorizontal: 10 }}>
+        <Ionicons name="arrow-back" size={24} color="black" />
+      </TouchableOpacity>
+      <View style={{ height: 10 }} />
       <View style={styles.searchContainer}>
         <TextInput
           placeholder="Cari Lokasi Kos Lainnya..."

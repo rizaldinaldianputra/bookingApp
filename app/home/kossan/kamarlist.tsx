@@ -1,7 +1,7 @@
 import { BASE_URL } from '@/constants/config';
 import { DetailKosResponse, Kamar } from '@/models/detail_kossan'; // sesuaikan path
 import { getKosById } from '@/service/kossan_service'; // sesuaikan path
-import { Entypo, FontAwesome, MaterialIcons } from '@expo/vector-icons';
+import { Entypo, FontAwesome, Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { JSX, useEffect, useState } from 'react';
 import {
@@ -113,6 +113,10 @@ const KamarListScreen = () => {
   return (
     <View style={styles.container}>
       <View style={{ height: 70 }} />
+      <TouchableOpacity onPress={() => router.back()} style={{}}>
+        <Ionicons name="arrow-back" size={24} color="black" />
+      </TouchableOpacity>
+      <View style={{ height: 10 }} />
       <Text style={styles.header}>List Kamar {nama}</Text>
 
       <FlatList
