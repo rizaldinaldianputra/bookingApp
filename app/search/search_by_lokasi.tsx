@@ -74,18 +74,19 @@ const renderRecommendedItem = ({ item }: { item: Kamar }) => {
     >
       <View style={styles.card}>
         <Image source={require('../../assets/images/onboarding.png')} style={styles.image} />
-
-        <View style={styles.cardContent}>
-          <Text style={styles.title}>{item.nama_kamar}</Text>
-          <Text style={styles.rooms}>{item.nama_kamar} Kamar tersedia</Text>
-          <TouchableOpacity
-            onPress={() =>
-              router.push(`/home/kossan/kamarlist?id=${item.kos.id}&nama=${item.kos.nama}`)
-            }
-            style={styles.floatingButton}
-          >
-            <Text style={styles.buttonText}>Lihat Kamar</Text>
-          </TouchableOpacity>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: 10,
+          }}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={styles.title}>{item.nama_kamar}</Text>
+            <Text style={styles.rooms}>{item.nama_kamar} Kamar tersedia</Text>
+          </View>
+          <Text style={styles.buttonText}>Lihat Kamar</Text>
         </View>
       </View>
     </TouchableOpacity>

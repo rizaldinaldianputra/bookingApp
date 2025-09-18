@@ -1,9 +1,9 @@
-import { BookingData } from '@/models/transaksi_kossan';
+import { BASE_URL } from '@/constants/config';
 import { postTransaksi } from '@/service/transaksi_service';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -21,17 +21,9 @@ export default function PaymentScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
-  const payload: BookingData = {
-    user_id: Number(params.user_id),
-    tanggal: String(params.tanggal),
-    harga: Number(params.harga),
-    quantity: Number(params.quantity),
-    start_order_date: String(params.start_order_date),
-    end_order_date: String(params.end_order_date),
-    kos_id: Number(params.kos_id),
-    kamar_id: Number(params.kamar_id),
-    paket_id: Number(params.paket_id),
-  };
+  const bookingData = params.bookingData ? JSON.parse(params.bookingData as string) : null;
+  const kosData = params.kosData ? JSON.parse(params.kosData as string) : null;
+  const harga = params.harga ? JSON.parse(params.harga as string) : null;
 
   const [proofImage, setProofImage] = useState<string | null>(null);
   const [asalBank, setAsalBank] = useState('');
@@ -61,7 +53,7 @@ export default function PaymentScreen() {
   const handleSudahBayar = async () => {
     setIsLoading(true);
     try {
-      const response = await postTransaksi(payload);
+      const response = await postTransaksi(bookingData);
       if (response.success) {
         setSuccessVisible(true);
       } else {
@@ -87,14 +79,19 @@ export default function PaymentScreen() {
 
       <View style={styles.propertyCard}>
         <Image
-          source={{ uri: 'https://via.placeholder.com/80x80.png' }}
+          source={{
+            uri:
+              kosData.gallery && kosData.gallery.length > 0
+                ? BASE_URL + kosData.gallery[0].url
+                : 'https://via.placeholder.com/300',
+          }}
           style={styles.propertyImage}
         />
         <View style={{ flex: 1, marginLeft: 10 }}>
-          <Text style={styles.propertyName}>Gunung Pati Hills</Text>
-          <Text style={styles.propertyAddress}>Jl. Seduduk, Karol Semarang</Text>
+          <Text style={styles.propertyName}>{kosData.nama_kamar}</Text>
+          <Text style={styles.propertyAddress}>{kosData.kos.daerah}</Text>
           <Text style={styles.propertyDate}>
-            {payload.start_order_date} - {payload.end_order_date}
+            {bookingData.start_order_date} - {bookingData.end_order_date}
           </Text>
         </View>
       </View>
@@ -102,8 +99,8 @@ export default function PaymentScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Rincian Pembayaran</Text>
         <View style={styles.row}>
-          <Text>Total 1 bulan</Text>
-          <Text style={styles.bold}>Rp{payload.harga},-</Text>
+          <Text>Total</Text>
+          <Text style={styles.bold}>Rp{harga},-</Text>
         </View>
         <View style={styles.row}>
           <Text>Fee</Text>

@@ -113,7 +113,6 @@ const DetailApartmentScreen: React.FC = () => {
       router.replace('/auth/login');
     } else {
       const selectedPaketId = kosData?.paket_harga?.paket_id;
-
       const bookingData = {
         user_id: user?.id,
         tanggal: new Date().toISOString().split('T')[0],
@@ -125,9 +124,14 @@ const DetailApartmentScreen: React.FC = () => {
         kamar_id: idKamar,
         paket_id: selectedPaketId,
       };
+      console.log('ini harga' + selectedHarga);
       router.replace({
         pathname: '/home/payment/payment',
-        params: bookingData,
+        params: {
+          bookingData: JSON.stringify(bookingData),
+          kosData: JSON.stringify(kosData),
+          harga: JSON.stringify(selectedHarga),
+        },
       });
 
       setVisible(false);
@@ -274,27 +278,34 @@ const DetailApartmentScreen: React.FC = () => {
       {/* Floating Bottom */}
       <View style={[styles.floatingButtons, { bottom: insets.bottom }]}>
         <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-          {selectedHarga ? (
-            <>
-              <Text style={styles.cardPrice}>Rp {selectedHarga.toLocaleString('id-ID')}</Text>
-              <Text style={styles.cardMonth}>/ {paketLabels[selectedPaket || ''] || 'Paket'}</Text>
-            </>
+          {selectedPaket ? (
+            selectedHarga ? (
+              <>
+                <Text style={styles.cardPrice}>Rp {selectedHarga.toLocaleString('id-ID')}</Text>
+                <Text style={styles.cardMonth}>/ {paketLabels[selectedPaket] || 'Paket'}</Text>
+              </>
+            ) : (
+              <Text style={styles.cardPrice}>Harga tidak tersedia</Text>
+            )
           ) : (
-            <Text style={styles.cardPrice}>Harga tidak tersedia</Text>
+            <Text style={styles.cardPrice}>Tidak Tersedia, Silahkan Atur Filter</Text>
           )}
         </View>
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => {
-            if (!token) {
-              router.replace('/auth/login');
-            } else {
-              setVisible(true);
-            }
-          }}
-        >
-          <Text style={styles.buttonText}>Booking Now</Text>
-        </TouchableOpacity>
+
+        {selectedPaket && (
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => {
+              if (!token) {
+                router.replace('/auth/login');
+              } else {
+                setVisible(true);
+              }
+            }}
+          >
+            <Text style={styles.buttonText}>Booking Now</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Bottom Dialog Modal */}

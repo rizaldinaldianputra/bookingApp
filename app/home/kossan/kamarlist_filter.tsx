@@ -17,9 +17,6 @@ import {
 const KamarListFilter = () => {
   const params = useLocalSearchParams();
 
-  // Ambil filter dari URL
-  // Mapping agar sesuai tipe GetKosParams
-  // Ambil filter dari URL
   const filterParams = useMemo(() => {
     const temp = {
       daerah: Array.isArray(params.daerah) ? params.daerah[0] : params.daerah || '',
@@ -28,21 +25,24 @@ const KamarListFilter = () => {
       start_date: Array.isArray(params.start_date) ? params.start_date[0] : params.start_date || '',
       end_date: Array.isArray(params.end_date) ? params.end_date[0] : params.end_date || '',
     };
-    // Hanya simpan key yang punya value
     const filtered: Record<string, string> = {};
     Object.entries(temp).forEach(([key, value]) => {
       if (value) filtered[key] = value;
     });
     return filtered;
   }, [params.location, params.durasi, params.jenis, params.start_date, params.end_date]);
+
   const [kamarList, setKamarList] = useState<Kamar[]>([]);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     setLoading(true);
     getKos(filterParams)
       .then((res) => {
         if (res.success && res.data) {
           setKamarList(res.data);
+        } else {
+          setKamarList([]);
         }
       })
       .finally(() => setLoading(false));
@@ -125,12 +125,19 @@ const KamarListFilter = () => {
       <View style={{ height: 10 }} />
       <Text style={styles.header}>List Kamar</Text>
 
-      <FlatList
-        data={kamarList}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={{ paddingBottom: 20 }}
-      />
+      {kamarList.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="bed-outline" size={48} color="#A3B7A1" />
+          <Text style={styles.emptyText}>Belum ada kamar yang sesuai filter</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={kamarList}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={{ paddingBottom: 20 }}
+        />
+      )}
     </View>
   );
 };
@@ -185,6 +192,19 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   detailButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
+
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 50,
+  },
+  emptyText: {
+    color: '#A3B7A1',
+    fontSize: 16,
+    marginTop: 12,
+    fontWeight: 'bold',
+  },
 });
 
 export default KamarListFilter;

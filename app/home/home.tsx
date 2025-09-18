@@ -5,7 +5,7 @@ import { User } from '@/models/user';
 import { getLokasi } from '@/service/home_service';
 import { getUsers } from '@/service/user_service';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
+import { router, useNavigation } from 'expo-router';
 import { useEffect, useState } from 'react';
 
 import { colors } from '@/constants/colors';
@@ -50,53 +50,63 @@ const renderLokasiItem = ({ item }: { item: Lokasi }) => (
 );
 
 // Render Item untuk Kos
-const renderKosItem = ({ item }: { item: Kamar }) => (
-  <TouchableOpacity
-    onPress={() =>
-      router.push({
-        pathname: '/home/kossan/detail',
-        params: { idKossan: item.kos.id, idKamar: item.id.toString() },
-      })
-    }
-  >
-    <View style={styles.kosCard}>
-      <Image
-        source={{
-          uri:
-            item.gallery && item.gallery.length > 0
-              ? item.gallery[0].url
-              : 'https://picsum.photos/100',
-        }}
-        style={styles.kosImage}
-      />
-      <View style={styles.kosInfo}>
-        <Text style={styles.kosTitle}>{item.nama_kamar}</Text>
+const renderKosItem = ({ item }: { item: Kamar }) => {
+  const harga =
+    item.paket_harga?.perharian_harga ||
+    item.paket_harga?.perbulan_harga ||
+    item.paket_harga?.pertigabulan_harga ||
+    item.paket_harga?.perenambulan_harga ||
+    item.paket_harga?.pertahun_harga;
 
-        <View style={styles.facilityRow}>
-          {Array.isArray(item.fasilitas) ? (
-            item.fasilitas.slice(0, 4).map((fasilitas: Fasilitas | string, index: number) => (
-              <View key={index} style={styles.facilityBadge}>
+  // jika semua harga null atau 0, jangan render item
+  if (!harga) return null;
+
+  return (
+    <TouchableOpacity
+      onPress={() =>
+        router.push({
+          pathname: '/home/kossan/detail',
+          params: { idKossan: item.kos.id, idKamar: item.id.toString() },
+        })
+      }
+    >
+      <View style={styles.kosCard}>
+        <Image
+          source={{
+            uri:
+              item.gallery && item.gallery.length > 0
+                ? item.gallery[0].url
+                : 'https://picsum.photos/100',
+          }}
+          style={styles.kosImage}
+        />
+        <View style={styles.kosInfo}>
+          <Text style={styles.kosTitle}>{item.nama_kamar}</Text>
+
+          <View style={styles.facilityRow}>
+            {Array.isArray(item.fasilitas) ? (
+              item.fasilitas.slice(0, 4).map((fasilitas: Fasilitas | string, index: number) => (
+                <View key={index} style={styles.facilityBadge}>
+                  <Text style={styles.facilityText}>
+                    {typeof fasilitas === 'string' ? fasilitas : fasilitas.nama}
+                  </Text>
+                </View>
+              ))
+            ) : item.fasilitas ? (
+              <View style={styles.facilityBadge}>
                 <Text style={styles.facilityText}>
-                  {typeof fasilitas === 'string' ? fasilitas : fasilitas.nama}
+                  {typeof item.fasilitas === 'string' ? item.fasilitas : item.fasilitas}
                 </Text>
               </View>
-            ))
-          ) : item.fasilitas ? (
-            <View style={styles.facilityBadge}>
-              <Text style={styles.facilityText}>
-                {typeof item.fasilitas === 'string' ? item.fasilitas : item.fasilitas}
-              </Text>
-            </View>
-          ) : null}
-        </View>
+            ) : null}
+          </View>
 
-        <Text style={styles.kosPrice}>
-          Rp {item.paket_harga?.perharian_harga?.toLocaleString() ?? 0}/bulan
-        </Text>
+          <Text style={styles.kosPrice}>Rp {harga.toLocaleString()}</Text>
+        </View>
       </View>
-    </View>
-  </TouchableOpacity>
-);
+    </TouchableOpacity>
+  );
+};
 
 const HomeScreen = () => {
   const { token } = useAuth();
@@ -114,6 +124,7 @@ const HomeScreen = () => {
   });
 
   const { kosData } = useKosData(activeFilters);
+  const navigation = useNavigation<any>();
 
   useEffect(() => {
     const fetchLokasi = async () => {
@@ -183,7 +194,9 @@ const HomeScreen = () => {
       {/* Lokasi Kos */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Lokasi Kos</Text>
-        <Text style={styles.seeMore}>See more</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Kossan')}>
+          <Text style={styles.seeMore}>See more</Text>
+        </TouchableOpacity>
       </View>
       <FlatList
         data={lokasi}
