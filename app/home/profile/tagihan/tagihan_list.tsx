@@ -4,7 +4,7 @@ import { getUsers } from '@/service/user_service';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -121,7 +121,7 @@ export default function PembeliaList() {
         style={styles.actionCell}
         onPress={() =>
           router.push({
-            pathname: '/home/profile/pembelian/pembelian_detail',
+            pathname: '/home/profile/tagihan/tagihan_detail',
             params: {
               data: JSON.stringify(item), // kirim object sebagai string
             },
@@ -136,7 +136,7 @@ export default function PembeliaList() {
   if (!user || loading) {
     return (
       <SafeAreaView style={styles.fullScreenCenter}>
-        <AppBar title="Daftar Transaksi" />
+        <AppBar title="Daftar Tagihan" />
         <View style={styles.center}>
           <ActivityIndicator size="large" color="#000" />
         </View>
@@ -147,7 +147,7 @@ export default function PembeliaList() {
   if (error) {
     return (
       <SafeAreaView style={styles.fullScreenCenter}>
-        <AppBar title="Daftar Transaksi" />
+        <AppBar title="Daftar Tagihan" />
         <View style={styles.center}>
           <Text>{error}</Text>
           <TouchableOpacity onPress={refetch} style={styles.button}>
@@ -160,7 +160,7 @@ export default function PembeliaList() {
 
   return (
     <SafeAreaView style={styles.flexContainer}>
-      <AppBar title="Daftar Transaksi" />
+      <AppBar title="Daftar Tagihan" />
 
       <View style={styles.container}>
         <View style={styles.controlsContainer}>

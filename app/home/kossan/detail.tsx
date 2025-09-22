@@ -137,6 +137,14 @@ const DetailApartmentScreen: React.FC = () => {
       setVisible(false);
     }
   };
+  // validasi input sebelum konfirmasi
+  const isFormValid =
+    namaLengkap.trim() !== '' &&
+    nomorHandphone.trim() !== '' &&
+    email.trim() !== '' &&
+    noIdentitas.trim() !== '' &&
+    tanggalCheckIn &&
+    tanggalCheckOut;
 
   const handleConfirmCheckIn = (date: Date) => {
     setTanggalCheckIn(date.toISOString().split('T')[0]);
@@ -437,9 +445,12 @@ const DetailApartmentScreen: React.FC = () => {
 
             {/* Tombol Konfirmasi Pesanan */}
             <TouchableOpacity
-              style={modalStyles.confirmButton}
+              style={[
+                modalStyles.confirmButton,
+                !isFormValid && { backgroundColor: 'gray' }, // kasih warna abu kalau disabled
+              ]}
               onPress={handleBooking}
-              disabled={false} // sementara untuk testing
+              disabled={!isFormValid}
             >
               <Text style={modalStyles.confirmButtonText}>Konfirmasi Pesanan</Text>
             </TouchableOpacity>

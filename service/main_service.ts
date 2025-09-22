@@ -1,14 +1,17 @@
 import { getToken } from '@/session/session';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import { BASE_URL } from '../constants/config';
 
-const api = axios.create({
-  baseURL: BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-    Accept: 'application/json',
-  },
-});
+const createApi = (baseURL: string = BASE_URL) =>
+  axios.create({
+    baseURL,
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+  });
+
+const api = createApi();
 
 // interceptor request
 api.interceptors.request.use(
@@ -34,36 +37,62 @@ api.interceptors.response.use(
     console.log('RESPONSE:', res.data);
     return res;
   },
-  (error) => {
-    console.error(error.response?.data['message']);
-    return Promise.reject(error);
+  (error: AxiosError<any>) => {
+    // ambil message dari backend
+    const backendMessage =
+      (error.response?.data as any)?.message || error.message || 'Terjadi kesalahan';
+    console.error('❌ API ERROR:', backendMessage);
+
+    // bikin error baru supaya konsisten
+    return Promise.reject(new Error(backendMessage));
   },
 );
 
 // fungsi dasar
-export const getRequest = async <T>(url: string, queryParams?: any): Promise<T> => {
-  const response = await api.get<T>(url, { params: queryParams });
+export const getRequest = async <T>(
+  url: string,
+  queryParams?: any,
+  baseURL: string = BASE_URL,
+): Promise<T> => {
+  const client = baseURL === BASE_URL ? api : createApi(baseURL);
+  const response = await client.get<T>(url, { params: queryParams });
   return response.data;
 };
 
-export const postRequest = async <T>(url: string, body?: any): Promise<T> => {
-  const response = await api.post<T>(url, body);
+export const postRequest = async <T>(
+  url: string,
+  body?: any,
+  baseURL: string = BASE_URL,
+): Promise<T> => {
+  const client = baseURL === BASE_URL ? api : createApi(baseURL);
+  const response = await client.post<T>(url, body);
   return response.data;
 };
 
-export const putRequest = async <T>(url: string, body?: any): Promise<T> => {
-  const response = await api.put<T>(url, body);
+export const putRequest = async <T>(
+  url: string,
+  body?: any,
+  baseURL: string = BASE_URL,
+): Promise<T> => {
+  const client = baseURL === BASE_URL ? api : createApi(baseURL);
+  const response = await client.put<T>(url, body);
   return response.data;
 };
 
-export const deleteRequest = async <T>(url: string): Promise<T> => {
-  const response = await api.delete<T>(url);
+export const deleteRequest = async <T>(url: string, baseURL: string = BASE_URL): Promise<T> => {
+  const client = baseURL === BASE_URL ? api : createApi(baseURL);
+  const response = await client.delete<T>(url);
   return response.data;
 };
 
 // 🔥 fungsi khusus FormData
-export const postFormRequest = async <T>(url: string, formData: FormData): Promise<T> => {
-  const response = await api.post<T>(url, formData, {
+export const postFormRequest = async <T>(
+  url: string,
+  formData: FormData,
+  baseURL: string = BASE_URL,
+): Promise<T> => {
+  const client = baseURL === BASE_URL ? api : createApi(baseURL);
+  const response = await client.post<T>(url, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },

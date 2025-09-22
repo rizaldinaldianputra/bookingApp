@@ -13,7 +13,11 @@ export function useKosData(filters: FilterState) {
     if (isLoading) return;
     setIsLoading(true);
     try {
-      const response = await getKos(filters); // API service kamu
+      const response = await getKos({
+        ...filters,
+        start_date: filters.start_date ?? undefined,
+        end_date: filters.end_date ?? undefined,
+      });
       setKosData(response.data);
     } catch (e) {
       console.error('Error getKos:', e);

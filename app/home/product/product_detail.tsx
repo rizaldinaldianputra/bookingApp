@@ -2,11 +2,11 @@ import { colors } from '@/constants/colors';
 import { useAuth } from '@/context/AuthContext';
 import { KatalogProductById } from '@/models/katalogproductbyid';
 import { User } from '@/models/user';
-import { getProductById, postTransaksiProduct } from '@/service/product_service';
+import { getProductById } from '@/service/product_service';
 import { getUsers } from '@/service/user_service';
 import { Feather } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import {
   ActivityIndicator,
@@ -183,35 +183,52 @@ export default function DetailProductScreen() {
                 const id = Number(user?.id);
                 setIsLoading(true); // mulai loading
 
-                try {
-                  const response = await postTransaksiProduct({
-                    id_user: id,
-                    id_produk: product.id_produk,
-                    jumlah: quantity,
-                    harga_satuan: hargaSatuan,
-                    subtotal: hargaSatuan * quantity,
-                    tanggal_transaksi: tanggalTransaksi,
-                    status: 'belum_lunas',
-                  });
+                const payload = {
+                  id_user: id,
+                  nama_user: user?.nama,
+                  email: user?.email,
+                  id_produk: product.id_produk,
+                  nama_produk: product.judul_produk,
+                  jumlah: quantity,
+                  harga_satuan: hargaSatuan,
+                  subtotal: hargaSatuan * quantity,
+                  tanggal_transaksi: tanggalTransaksi,
+                  status: 'belum_lunas',
+                };
 
-                  toast.show(`${response.message}\nNo. Order: ${response.data.no_order}`, {
-                    type: 'success',
-                    placement: 'bottom',
-                  });
+                router.replace({
+                  pathname: '/home/product/payment_product',
+                  params: { payload: JSON.stringify(payload) }, // kirim object jadi string
+                });
+                // try {
+                //   const response = await postTransaksiProduct({
+                //     id_user: id,
+                //     id_produk: product.id_produk,
+                //     jumlah: quantity,
+                //     harga_satuan: hargaSatuan,
+                //     subtotal: hargaSatuan * quantity,
+                //     tanggal_transaksi: tanggalTransaksi,
+                //     status: 'belum_lunas',
+                //   });
 
-                  router.replace('/home/main');
-                } catch (error: any) {
-                  console.error('Gagal post transaksi:', error);
+                //   toast.show(`${response.message}\nNo. Order: ${response.data.no_order}`, {
+                //     type: 'success',
+                //     placement: 'bottom',
+                //   });
 
-                  const errMsg = error.response?.data?.message || 'Transaksi tidak dapat diproses';
+                //   router.replace('/home/main');
+                // } catch (error: any) {
+                //   console.error('Gagal post transaksi:', error);
 
-                  toast.show(errMsg, {
-                    type: 'danger',
-                    placement: 'bottom',
-                  });
-                } finally {
-                  setIsLoading(false); // selesai loading
-                }
+                //   const errMsg = error.response?.data?.message || 'Transaksi tidak dapat diproses';
+
+                //   toast.show(errMsg, {
+                //     type: 'danger',
+                //     placement: 'bottom',
+                //   });
+                // } finally {
+                //   setIsLoading(false); // selesai loading
+                // }
               }
             }}
             style={styles.buyNow}
