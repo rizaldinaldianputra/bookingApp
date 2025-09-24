@@ -124,7 +124,8 @@ const DetailApartmentScreen: React.FC = () => {
         kamar_id: idKamar,
         paket_id: selectedPaketId,
       };
-      console.log('ini harga' + selectedHarga);
+
+      console.log('ini harga' + selectedPaketId);
       router.replace({
         pathname: '/home/payment/payment',
         params: {

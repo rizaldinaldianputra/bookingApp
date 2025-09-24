@@ -30,6 +30,7 @@ import { KamarResponse as ApiKamarResponse, Kamar } from '../../models/kossan';
 import { getKos } from '../../service/kossan_service';
 
 interface FilterState {
+  id: string;
   location: string;
   time: string;
   gender: string;
@@ -376,6 +377,7 @@ export default function SearchByLokasiScreen() {
 
       try {
         const params: any = { current_page: page, per_page: 10 };
+        if (filters.id) params.id = filters.id;
         if (filters.search) params.search = filters.search;
         if (filters.location) params.daerah = filters.location;
         if (filters.gender) params.jenis_kos = filters.gender;

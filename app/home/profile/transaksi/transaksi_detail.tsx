@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface TransaksiDetailProps {
@@ -122,15 +121,6 @@ export default function TransaksiDetail() {
           <View style={styles.row}>
             <Text style={styles.label}>Harga</Text>
             <Text style={styles.value}>Rp{transaksi.harga.toLocaleString('id-ID')}</Text>
-          </View>
-
-          <View style={styles.row}>
-            <Text style={styles.label}>Pembayaran</Text>
-            <Text style={styles.value}>
-              {transaksi.pembayaran.length > 0
-                ? transaksi.pembayaran.map((p) => p.metode).join(', ')
-                : '-'}
-            </Text>
           </View>
         </View>
       </ScrollView>

@@ -28,7 +28,7 @@ const { width } = Dimensions.get('window');
 // Handle card press
 const handleCardPress = (itemName: string) => {
   router.push({
-    pathname: '/search/search_by_lokasi',
+    pathname: '/home/kossan/kossan_by_lokasi',
     params: { name: itemName },
   });
 };

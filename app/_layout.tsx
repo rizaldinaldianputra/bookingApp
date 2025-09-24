@@ -36,6 +36,8 @@ export default function RootLayout() {
                 'home/profile/pembelianproduct/pembelian_list',
 
                 'home/profile/tagihan/tagihan_detail',
+                'home/kossan/kossan_by_lokasi',
+
                 'home/kossan/kamarlist',
                 'home/kossan/kossanlist',
                 'home/kossan/lokasilist',

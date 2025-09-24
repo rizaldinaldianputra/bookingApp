@@ -3,21 +3,18 @@ import { Instruction, OrderItem, PaymentResponse } from '@/models/instruksi_paym
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect } from 'react'; // Impor useEffect
+import { useEffect } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 const PaymentInstructionScreen = () => {
-  const params = useLocalSearchParams(); // Ambil semua params
+  const params = useLocalSearchParams();
   const { data } = params;
 
-  // PRINT HASIL PARAMS AWAL
   useEffect(() => {
     console.log('🔵 Hasil useLocalSearchParams (params):', params);
     console.log('🔵 Data string dari params.data:', data);
   }, [params, data]);
 
-  // Pastikan untuk memeriksa apakah 'data' ada dan merupakan string sebelum JSON.parse
-  // Kemudian, cast hasilnya ke PaymentResponse
   let paymentResponse: PaymentResponse | null = null;
   if (typeof data === 'string') {
     try {
@@ -27,12 +24,10 @@ const PaymentInstructionScreen = () => {
     }
   }
 
-  // PRINT HASIL PAYMENTRESPONSE SETELAH PARSE
   useEffect(() => {
     console.log('🟢 Hasil paymentResponse setelah JSON.parse:', paymentResponse);
   }, [paymentResponse]);
 
-  // Ambil objek PaymentData dari properti 'data' di PaymentResponse
   const payment: PaymentResponse['data'] | null = paymentResponse ? paymentResponse.data : null;
 
   const copyToClipboard = async (text: string) => {
@@ -76,9 +71,9 @@ const PaymentInstructionScreen = () => {
         {/* Ringkasan pembayaran */}
         <View style={styles.summaryBox}>
           <Text style={styles.paymentName}>{payment.payment_name}</Text>
-          <View style={{ flexDirection: 'row' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={styles.payCode}>VA: {payment.pay_code}</Text>
-            <View style={{ width: 5 }}></View>
+            <View style={{ width: 5 }} />
             <TouchableOpacity onPress={() => copyToClipboard(payment.pay_code)}>
               <Ionicons name="copy-outline" size={20} color="#333" />
             </TouchableOpacity>
@@ -87,38 +82,33 @@ const PaymentInstructionScreen = () => {
         </View>
 
         {/* Instruksi */}
-        {payment.instructions?.map(
-          (
-            instruction: Instruction,
-            idx: number, // Gunakan interface Instruction
-          ) => (
-            <View key={idx} style={styles.instructionBox}>
-              <Text style={styles.instructionTitle}>{instruction.title}</Text>
-              {instruction.steps.map((step: string, stepIdx: number) => (
-                <Text key={stepIdx} style={styles.stepText}>
-                  {stepIdx + 1}. {step.replace(/<[^>]*>?/gm, '')}
-                </Text>
-              ))}
-            </View>
-          ),
-        )}
+        {payment.instructions?.map((instruction: Instruction, idx: number) => (
+          <View key={idx} style={styles.instructionBox}>
+            <Text style={styles.instructionTitle}>{instruction.title}</Text>
+            {instruction.steps.map((step: string, stepIdx: number) => (
+              <Text key={stepIdx} style={styles.stepText}>
+                {stepIdx + 1}. {step.replace(/<[^>]*>?/gm, '')}
+              </Text>
+            ))}
+          </View>
+        ))}
 
-        {/* Opsional: Tampilkan detail order items jika diperlukan */}
+        {/* Detail Pesanan */}
         {payment.order_items && payment.order_items.length > 0 && (
           <View style={styles.instructionBox}>
             <Text style={styles.instructionTitle}>Detail Pesanan</Text>
-            {payment.order_items.map(
-              (
-                item: OrderItem,
-                itemIdx: number, // Gunakan interface OrderItem
-              ) => (
-                <Text key={itemIdx} style={styles.stepText}>
-                  {item.name} (x{item.quantity}) - Rp {Number(item.price).toLocaleString('id-ID')}
-                </Text>
-              ),
-            )}
+            {payment.order_items.map((item: OrderItem, itemIdx: number) => (
+              <Text key={itemIdx} style={styles.stepText}>
+                {item.name} (x{item.quantity}) - Rp {Number(item.price).toLocaleString('id-ID')}
+              </Text>
+            ))}
           </View>
         )}
+
+        {/* Tombol Sudah Bayar */}
+        <TouchableOpacity style={styles.payButton} onPress={() => router.replace('/home/main')}>
+          <Text style={styles.payText}>Sudah Bayar</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -145,6 +135,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     padding: 16,
+    paddingBottom: 80,
   },
   summaryBox: {
     backgroundColor: '#fff',
@@ -192,5 +183,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  payButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  payText: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
   },
 });

@@ -1,18 +1,53 @@
+import { colors } from '@/constants/colors';
+import { getTagihanById } from '@/service/transaksi_service';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
-interface TransaksiDetailProps {
+// Models
+interface Transaksi {
+  id: number;
+  quantity: number;
+  user_id: number;
   no_order: string;
-  tanggal_transaksi: string;
+  tanggal: string;
+  start_order_date: string | null;
+  end_order_date: string | null;
+  kos_id: number;
+  kamar_id: number;
+  paket_id: number;
+  harga: number;
   status: string;
-  jumlah: number;
-  harga_satuan: string;
-  subtotal: string;
-  produk: {
-    judul_produk: string;
-  };
+  created_at: string;
+  updated_at: string;
+}
+
+interface Pembayaran {
+  pembayaran_id: number;
+  kode_pembayaran: string;
+  transaksi_id: number;
+  tanggal: string;
+  jenis_bayar: string;
+  tipe_bayar: string;
+  keterangan: string | null;
+  nominal: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TagihanResponse {
+  success: boolean;
+  transaksi: Transaksi;
+  pembayarans: Pembayaran[];
 }
 
 // AppBar Component
@@ -38,104 +73,159 @@ const appBarStyles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  backButton: {
-    padding: 8,
-    marginLeft: -8,
-  },
-  appBarTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-  },
-  rightPlaceholder: {
-    width: 40,
-  },
+  backButton: { padding: 8, marginLeft: -8 },
+  appBarTitle: { fontSize: 16, fontWeight: '600', color: '#000' },
+  rightPlaceholder: { width: 40 },
 });
 
 export default function TransaksiDetail() {
-  const { data } = useLocalSearchParams();
-  const transaksi: TransaksiDetailProps = data
-    ? JSON.parse(data as string)
-    : {
-        no_order: '',
-        tanggal_transaksi: '',
-        status: '',
-        jumlah: 0,
-        harga_satuan: '0',
-        subtotal: '0',
-        produk: { judul_produk: '' },
-      };
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const [transaksi, setTransaksi] = useState<Transaksi | null>(null);
+  const [pembayarans, setPembayarans] = useState<Pembayaran[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (id) {
+      console.log('id param:', id);
+
+      getTagihanById(id)
+        .then((res: TagihanResponse) => {
+          if (res.success) {
+            setTransaksi(res.transaksi);
+            setPembayarans(res.pembayarans);
+          }
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [id]);
+
+  if (loading)
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  if (!transaksi)
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <Text>Transaksi tidak ditemukan</Text>
+      </View>
+    );
 
   return (
     <View style={{ flex: 1, backgroundColor: '#f9f9f9' }}>
-      {/* AppBar */}
       <AppBar title="Transaksi Detail" />
 
       <ScrollView style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.headerText}>Detail Transaksi Produk</Text>
+          <Text style={styles.headerText}>Detail Transaksi</Text>
         </View>
 
         <View style={styles.card}>
           <View style={styles.rowHeader}>
-            <Text style={styles.name}>{transaksi.produk.judul_produk}</Text>
+            <Text style={styles.name}>No Order: {transaksi.no_order}</Text>
             <View
               style={[
                 styles.statusContainer,
-                transaksi.status.toLowerCase() === 'belum_lunas' && styles.unpaid,
+                transaksi.status.toLowerCase() === 'booked' ? styles.booked : styles.unpaid,
               ]}
             >
-              <Text style={styles.statusText}>{transaksi.status}</Text>
+              <Text
+                style={[
+                  styles.statusText,
+                  transaksi.status.toLowerCase() === 'booked' && styles.bookedText,
+                ]}
+              >
+                {transaksi.status}
+              </Text>
             </View>
-          </View>
-
-          <View style={styles.row}>
-            <Text style={styles.label}>No Order</Text>
-            <Text style={styles.value}>{transaksi.no_order}</Text>
           </View>
 
           <View style={styles.row}>
             <Text style={styles.label}>Tanggal</Text>
             <Text style={styles.value}>
-              {transaksi.tanggal_transaksi
-                ? new Date(transaksi.tanggal_transaksi).toLocaleDateString('id-ID')
-                : '-'}
+              {transaksi.tanggal ? new Date(transaksi.tanggal).toLocaleDateString('id-ID') : '-'}
             </Text>
           </View>
 
           <View style={styles.row}>
             <Text style={styles.label}>Jumlah</Text>
-            <Text style={styles.value}>{transaksi.jumlah}</Text>
+            <Text style={styles.value}>{transaksi.quantity}</Text>
           </View>
 
           <View style={styles.row}>
-            <Text style={styles.label}>Harga Satuan</Text>
-            <Text style={styles.value}>
-              Rp{Number(transaksi.harga_satuan).toLocaleString('id-ID')}
-            </Text>
+            <Text style={styles.label}>Harga</Text>
+            <Text style={styles.value}>Rp{Number(transaksi.harga).toLocaleString('id-ID')}</Text>
           </View>
 
-          <View style={styles.row}>
-            <Text style={styles.label}>Subtotal</Text>
-            <Text style={styles.value}>Rp{Number(transaksi.subtotal).toLocaleString('id-ID')}</Text>
-          </View>
+          {/* Pembayaran */}
         </View>
+        <View style={{ height: 16 }} />
+        {pembayarans.length > 0 && (
+          <View style={styles.card}>
+            <View style={{ marginTop: 16 }}>
+              <Text style={{ fontWeight: '600', fontSize: 16, marginBottom: 12 }}>
+                Daftar Pembayaran
+              </Text>
+
+              {pembayarans.map((p) => (
+                <View key={p.pembayaran_id} style={styles.paymentCard}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={styles.paymentTitle}>
+                      {p.tipe_bayar.toUpperCase()} ({p.jenis_bayar})
+                    </Text>
+                    <Text style={{ fontSize: 12, color: colors.primary }}>{p.status}</Text>
+                  </View>
+
+                  <Text style={styles.paymentCode}>Kode Bayar: {p.kode_pembayaran}</Text>
+                  <Text style={styles.paymentDate}>
+                    Tanggal: {new Date(p.tanggal).toLocaleDateString('id-ID')}
+                  </Text>
+                  <Text style={styles.paymentAmount}>
+                    Rp{Number(p.nominal).toLocaleString('id-ID')}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 16,
+  paymentCard: {
+    backgroundColor: '#f8f8f8',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
   },
-  header: {
-    marginBottom: 16,
-  },
-  headerText: {
-    fontSize: 18,
+  paymentTitle: {
     fontWeight: '600',
+    fontSize: 14,
+    marginBottom: 4,
   },
+  paymentCode: {
+    fontSize: 13,
+    color: '#555',
+    marginBottom: 2,
+  },
+  paymentDate: {
+    fontSize: 13,
+    color: '#555',
+    marginBottom: 6,
+  },
+  paymentAmount: {
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'right',
+    color: '#000',
+  },
+
+  container: { padding: 16 },
+  header: { marginBottom: 16 },
+  headerText: { fontSize: 18, fontWeight: '600' },
   card: {
     backgroundColor: '#fff',
     borderRadius: 12,
@@ -151,36 +241,28 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     alignItems: 'center',
   },
-  name: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  name: { fontSize: 16, fontWeight: '600' },
   statusContainer: {
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 12,
     backgroundColor: '#ddd',
   },
+  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  label: { color: '#888', fontSize: 14 },
+  value: { fontWeight: '500', fontSize: 14, textAlign: 'right' },
+  booked: {
+    backgroundColor: '#4caf50', // hijau
+  },
+  bookedText: {
+    color: '#fff',
+  },
   unpaid: {
-    backgroundColor: '#ffe6e6',
+    backgroundColor: '#ffe6e6', // merah muda
   },
   statusText: {
     fontSize: 12,
-    color: '#e53935',
     textTransform: 'capitalize',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  label: {
-    color: '#888',
-    fontSize: 14,
-  },
-  value: {
-    fontWeight: '500',
-    fontSize: 14,
-    textAlign: 'right',
+    color: '#e53935',
   },
 });
