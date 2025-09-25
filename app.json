@@ -40,8 +40,6 @@
       }
     },
     "owner": "rizaldinp",
-    "plugins": [
-      "expo-router"
-    ]
+    "plugins": ["expo-router"]
   }
 }

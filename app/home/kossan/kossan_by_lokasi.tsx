@@ -53,7 +53,7 @@ const KossanByLoKasi = () => {
               {item.nama}
             </Text>
             <Text style={styles.location} numberOfLines={1} ellipsizeMode="tail">
-              📍 {item.daerah}
+              📍 {item.alamat_kota}
             </Text>
             <Text style={styles.desc} numberOfLines={2} ellipsizeMode="tail">
               {item.keterangan}
@@ -93,12 +93,18 @@ const KossanByLoKasi = () => {
       <View style={{ height: 10 }} />
       <Text style={styles.header}>List Kos {name}</Text>
 
-      <FlatList
-        data={kosList}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={{ paddingBottom: 20 }}
-      />
+      {kosList.length === 0 ? (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: '#888', fontSize: 16 }}>Tidak ada kos di lokasi ini.</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={kosList}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={{ paddingBottom: 20 }}
+        />
+      )}
     </View>
   );
 };
