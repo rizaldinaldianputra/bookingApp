@@ -90,6 +90,7 @@ export default function DetailProductScreen() {
 
   const increaseQty = () => setQuantity((prev) => prev + 1);
   const decreaseQty = () => setQuantity((prev) => (prev > 1 ? prev - 1 : 1));
+  const displayedPrice = parseFloat(product.harga || '0');
 
   return (
     <View style={styles.container}>
@@ -144,15 +145,9 @@ export default function DetailProductScreen() {
 
           <View style={styles.infoContainer}>
             <Text style={styles.productName}>{product.judul_produk}</Text>
-            <Text style={styles.price}>Rp{product.harga},-</Text>
+            <Text style={styles.price}>Rp{displayedPrice},-</Text>
             <Text style={styles.sectionTitle}>Deskripsi</Text>
-            <Text style={styles.description}>
-              Lorem ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum
-              has been the industry's standard dummy text ever since the 1500s, when an{' '}
-              <Text style={styles.readMore}>lihat selengkapnya</Text>
-              {/* Anda bisa menggunakan product.deskripsi di sini jika datanya sudah sesuai */}
-              {/* {product.deskripsi} */}
-            </Text>
+            <Text style={styles.description}>{product.deskripsi}</Text>
 
             {/* Quantity */}
             <View style={styles.quantityContainer}>

@@ -56,6 +56,16 @@ export default function PembelianList() {
       </SafeAreaView>
     );
   }
+  if (data.length == 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <AppBar title="Pembelian saya" />
+        <View style={styles.center}>
+          <Text>Tidak Pembelian Produk</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   if (error) {
     return (

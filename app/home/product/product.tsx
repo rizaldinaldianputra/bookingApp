@@ -1,8 +1,9 @@
-// App.tsx
+import { colors } from '@/constants/colors';
+import { BASE_URL } from '@/constants/config';
+import { KatalogProduct, KatalogProductResponse } from '@/models/katalogproduct';
 import { getProduct } from '@/service/product_service';
 import { router, useNavigation } from 'expo-router';
-
-import React, { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -16,10 +17,6 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
-import { colors } from '@/constants/colors';
-import { BASE_URL } from '@/constants/config';
-import { KatalogProduct, KatalogProductResponse } from '@/models/katalogproduct';
-
 const { width } = Dimensions.get('window');
 
 const renderProductItem = ({ item }: { item: KatalogProduct }) => {
@@ -27,9 +24,7 @@ const renderProductItem = ({ item }: { item: KatalogProduct }) => {
   const imageUrl =
     item.gambar && item.gambar.length > 0
       ? `${BASE_URL}/${item.gambar[0].url_gambar}`
-      : 'https://via.placeholder.com/100';
-
-  console.log(imageUrl);
+      : 'https://placehold.co/600x400';
 
   return (
     <TouchableOpacity
@@ -49,11 +44,12 @@ const renderProductItem = ({ item }: { item: KatalogProduct }) => {
 export default function ProductList() {
   const [productData, setProductData] = useState<KatalogProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchText, setSearchText] = useState('');
 
-  const fetchProductData = useCallback(async () => {
+  const fetchProductData = useCallback(async (search?: string) => {
     setIsLoading(true);
     try {
-      const response: KatalogProductResponse = await getProduct();
+      const response: KatalogProductResponse = await getProduct(search);
       if (response && response.success) {
         setProductData(response.data || []);
       } else {
@@ -67,16 +63,21 @@ export default function ProductList() {
     }
   }, []);
 
+  // Fetch awal tanpa search
   useEffect(() => {
     fetchProductData();
   }, [fetchProductData]);
 
-  const renderFooter = () =>
-    isLoading && productData.length > 0 ? (
-      <View style={styles.footerLoader}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    ) : null;
+  // Debounce search input
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      fetchProductData(searchText);
+    }, 500); // delay 500ms
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchText, fetchProductData]);
+
+  const renderFooter = () => (isLoading && productData.length > 0 ? <View></View> : null);
 
   const navigation = useNavigation();
 
@@ -98,6 +99,8 @@ export default function ProductList() {
             style={styles.searchInput}
             placeholder="Cari produk..."
             placeholderTextColor="#9CA3AF"
+            value={searchText}
+            onChangeText={setSearchText}
           />
         </View>
       </View>
@@ -124,7 +127,7 @@ export default function ProductList() {
   );
 }
 
-// Stylesheet
+// Styles tetap sama
 const styles = StyleSheet.create({
   fullScreenContainer: { flex: 1, backgroundColor: '#F9FAFB' },
   searchHeader: {
@@ -186,12 +189,7 @@ const styles = StyleSheet.create({
     resizeMode: 'cover',
   },
   productDetails: { padding: 10 },
-  productName: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#1F2937',
-    marginBottom: 5,
-  },
+  productName: { fontSize: 14, fontWeight: '500', color: '#1F2937', marginBottom: 5 },
   productPrice: { fontSize: 14, fontWeight: '700', color: '#0f172a' },
   listContentContainer: { paddingHorizontal: 10, paddingTop: 20, paddingBottom: 20 },
   row: { justifyContent: 'space-between' },

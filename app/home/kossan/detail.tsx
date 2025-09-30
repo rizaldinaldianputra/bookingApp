@@ -5,7 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { KamarDetail } from '@/models/detail_kamar_kossan';
 import { User } from '@/models/user';
 import { getUsers } from '@/service/user_service';
-import { AntDesign, Feather } from '@expo/vector-icons';
+import { AntDesign, Feather, Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { router, useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -21,7 +21,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import DateTimePickerModal from 'react-native-modal-datetime-picker'; // Import DateTimePickerModal
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import RenderHtml from 'react-native-render-html';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Fasilitas, Gallery, PaketHarga } from '../../../models/detail_kossan';
@@ -45,13 +45,13 @@ const DetailApartmentScreen: React.FC = () => {
   const [showCheckOutPicker, setShowCheckOutPicker] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // State untuk data pada modal
   const [namaLengkap, setNamaLengkap] = useState('');
-  const [nomorHandphone, setNomorHandphone] = useState('');
   const [email, setEmail] = useState('');
   const [noIdentitas, setNoIdentitas] = useState('');
   const [tanggalCheckIn, setTanggalCheckIn] = useState('');
   const [tanggalCheckOut, setTanggalCheckOut] = useState('');
+  const [isAvailable, setIsAvailable] = useState(true);
+  const [availableRange, setAvailableRange] = useState<{ start: Date; end: Date } | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -59,10 +59,8 @@ const DetailApartmentScreen: React.FC = () => {
       try {
         const data = await getUsers();
         setUser(data.user);
-        // Set nilai default dari user ke state modal
         if (data.user) {
           setNamaLengkap(data.user.nama || '');
-          setNomorHandphone(data.user.noHp || '');
           setEmail(data.user.email || '');
           setNoIdentitas(data.user.email || '');
         }
@@ -89,8 +87,6 @@ const DetailApartmentScreen: React.FC = () => {
     getKosByIdByKamar(String(idKossan), String(idKamar))
       .then((res) => {
         setKosData(res.data);
-
-        // default pilih bulanan kalau ada
         if (res.data.paket_harga?.perbulan_harga) {
           setSelectedPaket('perbulan_harga');
           setSelectedHarga(res.data.paket_harga.perbulan_harga);
@@ -100,6 +96,30 @@ const DetailApartmentScreen: React.FC = () => {
       .finally(() => setIsLoading(false));
   }, [idKossan, idKamar]);
 
+  // Perbaikan ketersediaan tanggal
+  useEffect(() => {
+    if (!kosData?.paket_harga?.ketersediaan) return;
+
+    const dates: Date[] = [];
+    kosData.paket_harga.ketersediaan.forEach((range) => {
+      let current = new Date(range.start_date);
+      const end = new Date(range.end_date);
+      while (current <= end) {
+        dates.push(new Date(current));
+        current.setDate(current.getDate() + 1);
+      }
+    });
+
+    if (dates.length > 0) {
+      const minDate = dates[0];
+      const maxDate = dates[dates.length - 1];
+      setAvailableRange({ start: minDate, end: maxDate });
+
+      if (tanggalCheckIn && new Date(tanggalCheckIn) < minDate) setTanggalCheckIn('');
+      if (tanggalCheckOut && new Date(tanggalCheckOut) > maxDate) setTanggalCheckOut('');
+    }
+  }, [kosData?.paket_harga?.ketersediaan]);
+
   const openGoogleMaps = () => {
     if (kosData?.kos.link_maps) {
       Linking.openURL(kosData.kos.link_maps).catch((err) =>
@@ -108,10 +128,38 @@ const DetailApartmentScreen: React.FC = () => {
     }
   };
 
+  const checkAvailability = (checkIn: string, checkOut: string) => {
+    if (!kosData?.paket_harga?.ketersediaan) return false;
+
+    const start = new Date(checkIn);
+    const end = new Date(checkOut);
+
+    let available = false;
+    kosData.paket_harga.ketersediaan.forEach((range) => {
+      const rangeStart = new Date(range.start_date);
+      const rangeEnd = new Date(range.end_date);
+
+      if (start >= rangeStart && end <= rangeEnd) {
+        available = true;
+      }
+    });
+
+    setIsAvailable(available);
+    return available;
+  };
+
   const handleBooking = () => {
     if (!token) {
       router.replace('/auth/login');
     } else {
+      if (
+        !tanggalCheckIn ||
+        !tanggalCheckOut ||
+        !checkAvailability(tanggalCheckIn, tanggalCheckOut)
+      ) {
+        return;
+      }
+
       const selectedPaketId = kosData?.paket_harga?.paket_id;
       const bookingData = {
         user_id: user?.id,
@@ -125,7 +173,6 @@ const DetailApartmentScreen: React.FC = () => {
         paket_id: selectedPaketId,
       };
 
-      console.log('ini harga' + selectedPaketId);
       router.replace({
         pathname: '/home/payment/payment',
         params: {
@@ -138,23 +185,27 @@ const DetailApartmentScreen: React.FC = () => {
       setVisible(false);
     }
   };
-  // validasi input sebelum konfirmasi
+
   const isFormValid =
     namaLengkap.trim() !== '' &&
-    nomorHandphone.trim() !== '' &&
     email.trim() !== '' &&
     noIdentitas.trim() !== '' &&
     tanggalCheckIn &&
-    tanggalCheckOut;
+    tanggalCheckOut &&
+    isAvailable;
 
   const handleConfirmCheckIn = (date: Date) => {
-    setTanggalCheckIn(date.toISOString().split('T')[0]);
+    const checkInStr = date.toISOString().split('T')[0];
+    setTanggalCheckIn(checkInStr);
     setShowCheckInPicker(false);
+    if (tanggalCheckOut) checkAvailability(checkInStr, tanggalCheckOut);
   };
 
   const handleConfirmCheckOut = (date: Date) => {
-    setTanggalCheckOut(date.toISOString().split('T')[0]);
+    const checkOutStr = date.toISOString().split('T')[0];
+    setTanggalCheckOut(checkOutStr);
     setShowCheckOutPicker(false);
+    if (tanggalCheckIn) checkAvailability(tanggalCheckIn, checkOutStr);
   };
 
   if (isLoading) {
@@ -199,6 +250,7 @@ const DetailApartmentScreen: React.FC = () => {
             <AntDesign name="sharealt" size={16} color="#000" />
           </TouchableOpacity>
         </View>
+
         {/* Info */}
         <View style={styles.infoContainer}>
           <Text style={styles.title}>{kosData.nama_kamar}</Text>
@@ -209,6 +261,7 @@ const DetailApartmentScreen: React.FC = () => {
             {kosData.tipe_kos}, {kosData.lantai}
           </Text>
         </View>
+
         {/* Gallery */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Gallery</Text>
@@ -226,6 +279,7 @@ const DetailApartmentScreen: React.FC = () => {
             )}
           </ScrollView>
         </View>
+
         {/* Fasilitas */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Fasilitas</Text>
@@ -238,11 +292,13 @@ const DetailApartmentScreen: React.FC = () => {
             ))}
           </View>
         </View>
+
         {/* Deskripsi */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Deskripsi</Text>
           <RenderHtml contentWidth={400} source={{ html: kosData.deskripsi }} />
         </View>
+
         {/* Lokasi */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Lokasi</Text>
@@ -255,6 +311,7 @@ const DetailApartmentScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         </View>
+
         {/* Harga */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Detail Harga</Text>
@@ -269,7 +326,7 @@ const DetailApartmentScreen: React.FC = () => {
             >
               {(Object.entries(kosData?.paket_harga || {}) as [string, unknown][])
                 .filter(([k, v]) => k !== 'ketersediaan' && typeof v === 'number')
-                .slice(1) // skip index pertama
+                .slice(1)
                 .map(([key, value]) => (
                   <Picker.Item
                     key={key}
@@ -282,6 +339,32 @@ const DetailApartmentScreen: React.FC = () => {
             </Picker>
           </View>
         </View>
+        {kosData?.paket_harga?.ketersediaan && kosData.paket_harga.ketersediaan.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Ketersediaan Tanggal</Text>
+            {kosData.paket_harga.ketersediaan.map((k, idx) => (
+              <View
+                key={idx}
+                style={{
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginVertical: 2,
+                }}
+              >
+                <Text style={{ fontSize: 14 }}>
+                  {k.start_date} → {k.end_date}
+                </Text>
+                <Ionicons
+                  name="checkmark-circle"
+                  size={20}
+                  color="green"
+                  style={{ marginRight: 6 }}
+                />
+              </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
 
       {/* Floating Bottom */}
@@ -303,7 +386,7 @@ const DetailApartmentScreen: React.FC = () => {
 
         {selectedPaket && (
           <TouchableOpacity
-            style={styles.button}
+            style={[styles.button, !isAvailable && { backgroundColor: 'gray' }]}
             onPress={() => {
               if (!token) {
                 router.replace('/auth/login');
@@ -311,8 +394,11 @@ const DetailApartmentScreen: React.FC = () => {
                 setVisible(true);
               }
             }}
+            disabled={!isAvailable}
           >
-            <Text style={styles.buttonText}>Booking Now</Text>
+            <Text style={styles.buttonText}>
+              {isAvailable ? 'Booking Now' : 'Kamar Tidak Tersedia'}
+            </Text>
           </TouchableOpacity>
         )}
       </View>
@@ -324,17 +410,14 @@ const DetailApartmentScreen: React.FC = () => {
         visible={visible}
         onRequestClose={() => setVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Konfirmasi Pemesanan</Text>
+        <View style={modalStyles.modalOverlay}>
+          <View style={modalStyles.modalContent}>
+            <Text style={modalStyles.modalTitle}>Konfirmasi Pemesanan</Text>
 
             {/* Data Penghuni */}
             <View style={modalStyles.section}>
               <View style={modalStyles.sectionHeader}>
                 <Text style={modalStyles.sectionTitle}>Data Penghuni</Text>
-                <TouchableOpacity onPress={() => console.log('Edit Data Penghuni')}>
-                  <Text style={modalStyles.editButtonText}>Edit</Text>
-                </TouchableOpacity>
               </View>
               <View style={modalStyles.inputGroup}>
                 <Text style={modalStyles.inputLabel}>Nama Lengkap</Text>
@@ -345,16 +428,7 @@ const DetailApartmentScreen: React.FC = () => {
                   placeholder="Masukkan Nama Lengkap"
                 />
               </View>
-              <View style={modalStyles.inputGroup}>
-                <Text style={modalStyles.inputLabel}>Nomor Handphone</Text>
-                <TextInput
-                  style={modalStyles.textInput}
-                  value={nomorHandphone}
-                  onChangeText={setNomorHandphone}
-                  keyboardType="phone-pad"
-                  placeholder="Masukkan Nomor Handphone"
-                />
-              </View>
+
               <View style={modalStyles.inputGroup}>
                 <Text style={modalStyles.inputLabel}>Email</Text>
                 <TextInput
@@ -385,9 +459,7 @@ const DetailApartmentScreen: React.FC = () => {
                   onPress={() => setShowCheckInPicker(true)}
                 >
                   <Feather name="calendar" size={18} color={colors.primary} />
-                  <Text style={modalStyles.datePickerText}>
-                    {tanggalCheckIn || 'Pilih Tanggal Check-in'}
-                  </Text>
+                  <Text style={modalStyles.datePickerText}>{tanggalCheckIn || 'Check-in'}</Text>
                 </TouchableOpacity>
                 <Text style={modalStyles.dateArrow}>→</Text>
                 <TouchableOpacity
@@ -395,66 +467,52 @@ const DetailApartmentScreen: React.FC = () => {
                   onPress={() => setShowCheckOutPicker(true)}
                 >
                   <Feather name="calendar" size={18} color={colors.primary} />
-                  <Text style={modalStyles.datePickerText}>
-                    {tanggalCheckOut || 'Pilih Tanggal Check-out'}
-                  </Text>
+                  <Text style={modalStyles.datePickerText}>{tanggalCheckOut || 'Check-out'}</Text>
                 </TouchableOpacity>
               </View>
             </View>
 
-            {/* DateTimePickerModal untuk Check-in */}
             <DateTimePickerModal
               isVisible={showCheckInPicker}
               mode="date"
               onConfirm={handleConfirmCheckIn}
               onCancel={() => setShowCheckInPicker(false)}
-              date={tanggalCheckIn ? new Date(tanggalCheckIn) : new Date()}
+              date={tanggalCheckIn ? new Date(tanggalCheckIn) : availableRange?.start || new Date()}
+              minimumDate={availableRange?.start}
+              maximumDate={availableRange?.end}
             />
-
-            {/* DateTimePickerModal untuk Check-out */}
             <DateTimePickerModal
               isVisible={showCheckOutPicker}
               mode="date"
               onConfirm={handleConfirmCheckOut}
               onCancel={() => setShowCheckOutPicker(false)}
-              date={tanggalCheckOut ? new Date(tanggalCheckOut) : new Date()}
+              date={
+                tanggalCheckOut ? new Date(tanggalCheckOut) : availableRange?.start || new Date()
+              }
+              minimumDate={availableRange?.start}
+              maximumDate={availableRange?.end}
             />
 
             {/* Detail Pemesanan */}
             <View style={modalStyles.section}>
               <Text style={modalStyles.sectionTitle}>Detail Pemesanan</Text>
-
               <View style={modalStyles.detailRow}>
-                <Text style={modalStyles.detailLabel}>Nama kos/kamar</Text>
-                <Text style={modalStyles.detailValue} numberOfLines={2} ellipsizeMode="tail">
-                  {kosData?.kos.nama} | {kosData?.nama_kamar}
+                <Text style={modalStyles.detailLabel}>Harga</Text>
+                <Text style={modalStyles.detailValue}>
+                  Rp {selectedHarga?.toLocaleString('id-ID')}
                 </Text>
               </View>
-
               <View style={modalStyles.detailRow}>
-                <Text style={modalStyles.detailLabel}>Jumlah Penghuni</Text>
-                <Text style={modalStyles.detailValue}>1 Orang Dewasa</Text>
-              </View>
-
-              <View style={[modalStyles.detailRow, modalStyles.totalPriceRow]}>
-                <Text style={modalStyles.detailLabel}>Harga</Text>
-                <Text style={modalStyles.totalPriceText}>
-                  Rp {selectedHarga ? selectedHarga.toLocaleString('id-ID') : '0'}
+                <Text style={modalStyles.detailLabel}>Durasi</Text>
+                <Text style={modalStyles.detailValue}>
+                  {selectedPaket ? paketLabels[selectedPaket] : '-'}
                 </Text>
               </View>
             </View>
 
-            {/* Tombol Konfirmasi Pesanan */}
-            <TouchableOpacity
-              style={[
-                modalStyles.confirmButton,
-                !isFormValid && { backgroundColor: 'gray' }, // kasih warna abu kalau disabled
-              ]}
-              onPress={handleBooking}
-              disabled={!isFormValid}
-            >
-              <Text style={modalStyles.confirmButtonText}>Konfirmasi Pesanan</Text>
-            </TouchableOpacity>
+            <View style={modalStyles.buttonRow}>
+              <CustomButton title="Bayar" onPress={handleBooking} disabled={!isFormValid} />
+            </View>
           </View>
         </View>
       </Modal>
@@ -463,232 +521,76 @@ const DetailApartmentScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  dropdownWrapper: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    marginTop: 8,
-  },
-  header: { height: 250 },
-  mainImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-  backButton: {
-    position: 'absolute',
-    top: 50,
-    left: 15,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: 8,
-    borderRadius: 50,
-  },
-  favoriteButton: {
-    position: 'absolute',
-    top: 50,
-    right: 50,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    padding: 8,
-    borderRadius: 50,
-  },
-  shareButton: {
-    position: 'absolute',
-    top: 50,
-    right: 15,
-    backgroundColor: '#fff',
-    padding: 8,
-    borderRadius: 50,
-  },
-  infoContainer: { padding: 16, backgroundColor: '#fff', marginBottom: 10 },
+  header: { position: 'relative', height: 300 },
+  mainImage: { width: '100%', height: '100%' },
+  backButton: { position: 'absolute', top: 20, left: 20 },
+  favoriteButton: { position: 'absolute', top: 20, right: 60 },
+  shareButton: { position: 'absolute', top: 20, right: 20 },
+  infoContainer: { padding: 16 },
   title: { fontSize: 20, fontWeight: 'bold' },
-  subtitle: { fontSize: 14, color: '#666', marginTop: 4 },
-  section: { backgroundColor: '#fff', padding: 16, marginBottom: 10 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
-  sectionsubTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  sectionsubTitleUrl: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#3498DB',
-  },
+  subtitle: { color: '#666', marginTop: 2 },
+  section: { padding: 16, backgroundColor: '#fff', marginBottom: 8 },
+  sectionTitle: { fontWeight: 'bold', fontSize: 16, marginBottom: 8 },
+  sectionsubTitle: { fontSize: 14 },
+  sectionsubTitleUrl: { fontSize: 14, textDecorationLine: 'underline' },
   gallery: { flexDirection: 'row' },
-  galleryImage: { width: 100, height: 100, borderRadius: 8, marginRight: 10 },
+  galleryImage: { width: 120, height: 120, marginRight: 8, borderRadius: 8 },
   facilitiesGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  facilityGridItem: { width: '33%', alignItems: 'center', marginBottom: 15 },
-  facilityText: { marginTop: 5, fontSize: 12, textAlign: 'center' },
-  priceRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  facilityGridItem: { width: '50%', flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  facilityText: { marginLeft: 8 },
+  dropdownWrapper: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8 },
   floatingButtons: {
     position: 'absolute',
     left: 0,
     right: 0,
-    paddingHorizontal: 16,
+    padding: 16,
+    backgroundColor: '#fff',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    height: 80,
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 5,
   },
-  cardPrice: { fontSize: 18, fontWeight: 'bold', color: '#0f172a' },
-  cardMonth: { fontSize: 12, fontWeight: 'bold', color: '#0f172a', marginLeft: 4 },
-  button: {
-    height: 50,
-    borderRadius: 40,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 24,
-  },
-  buttonText: { fontSize: 16, fontWeight: '600', color: '#fff' },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderTopRightRadius: 20,
-    borderTopLeftRadius: 20,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    color: colors.primary,
-  },
-  modalButton: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  modalButtonText: {
-    fontSize: 14,
-  },
-  modalAction: {
-    flex: 1,
-    padding: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginHorizontal: 5,
-  },
-  modalActionText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
+  cardPrice: { fontSize: 20, fontWeight: 'bold' },
+  cardMonth: { fontSize: 14, color: '#666', marginLeft: 4 },
+  button: { padding: 14, backgroundColor: colors.primary, borderRadius: 21 },
+  buttonText: { color: '#fff', fontWeight: 'bold' },
 });
 
 const modalStyles = StyleSheet.create({
-  section: {
-    marginBottom: 16,
+  modalOverlay: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(0,0,0,0.5)' },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 6,
-  },
-  detailLabel: {
-    width: 120, // label fixed width biar rata
-    fontWeight: '500',
-    color: '#444',
-  },
-  detailValue: {
-    flex: 1, // isi ambil sisa ruang
-    color: '#333',
-  },
-  totalPriceRow: {
-    marginTop: 8,
-  },
-  totalPriceText: {
-    flex: 1,
-    fontWeight: 'bold',
-    color: '#d32f2f',
-    textAlign: 'right',
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-
-  editButtonText: {
-    color: colors.primary,
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  inputGroup: {
-    marginBottom: 10,
-  },
-  inputLabel: {
-    fontSize: 12,
-    color: colors.primary,
-    marginBottom: 4,
-  },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    color: colors.primary,
-    backgroundColor: '#f9f9f9',
-  },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 16 },
+  section: { marginBottom: 16 },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  sectionTitle: { fontWeight: 'bold', fontSize: 16 },
+  editButtonText: { color: colors.primary },
+  inputGroup: { marginTop: 8 },
+  inputLabel: { marginBottom: 4 },
+  textInput: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 8 },
   datePickerContainer: {
     flexDirection: 'row',
+    alignContent: 'center',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 5,
+    marginTop: 8,
   },
   datePickerButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f9f9f9',
     borderWidth: 1,
-    borderColor: '#e0e0e0',
+    borderColor: '#ccc',
     borderRadius: 8,
-    padding: 12,
-    flex: 1,
-    marginHorizontal: 4,
-    justifyContent: 'center',
+    padding: 8,
   },
-  datePickerText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: colors.primary,
-  },
-  dateArrow: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.primary,
-    marginHorizontal: 5,
-  },
-
-  confirmButton: {
-    backgroundColor: colors.primary,
-    borderRadius: 40,
-    paddingVertical: 15,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  confirmButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
+  datePickerText: { marginLeft: 8 },
+  dateArrow: { marginHorizontal: 8 },
+  detailRow: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 4 },
+  detailLabel: { fontSize: 14 },
+  detailValue: { fontWeight: 'bold', fontSize: 14 },
+  buttonRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 16 },
 });
 
 export default DetailApartmentScreen;

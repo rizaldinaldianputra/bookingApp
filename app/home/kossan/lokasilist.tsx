@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
   ImageBackground,
@@ -19,6 +20,7 @@ const itemWidth = (screenWidth - 48) / numColumns;
 
 const LokasiList = () => {
   const [lokasi, setLokasi] = useState<Lokasi[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const fetchLokasi = async () => {
@@ -27,6 +29,8 @@ const LokasiList = () => {
         setLokasi(response.data);
       } catch (e) {
         console.log('Error getLokasi:', e);
+      } finally {
+        setLoading(false);
       }
     };
     fetchLokasi();
@@ -34,9 +38,9 @@ const LokasiList = () => {
 
   const renderItem = ({ item }: { item: Lokasi }) => (
     <TouchableOpacity
-      onPress={function () {
-        return router.push({
-          pathname: '/home/kossan/kossanlist',
+      onPress={() => {
+        router.push({
+          pathname: '/home/kossan/kossan_by_lokasi',
           params: { name: item.nama },
         });
       }}
@@ -47,7 +51,6 @@ const LokasiList = () => {
           style={styles.image}
           imageStyle={{ borderRadius: 20 }}
         >
-          {/* Overlay untuk text */}
           <View style={styles.overlay}>
             <Text style={styles.cardTitle}>{item.nama}</Text>
           </View>
@@ -55,6 +58,14 @@ const LokasiList = () => {
       </View>
     </TouchableOpacity>
   );
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#1D4E2B" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -73,6 +84,11 @@ const LokasiList = () => {
         columnWrapperStyle={styles.row}
         contentContainerStyle={{ paddingBottom: 20 }}
         keyExtractor={(item) => item.id.toString()}
+        ListEmptyComponent={
+          <Text style={{ textAlign: 'center', marginTop: 20, color: '#333' }}>
+            Tidak ada lokasi tersedia
+          </Text>
+        }
       />
     </View>
   );
@@ -115,11 +131,10 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
-    justifyContent: 'flex-end', // supaya overlay di bawah
+    justifyContent: 'flex-end',
   },
   overlay: {
     width: '100%',
-
     margin: 20,
   },
   cardTitle: {

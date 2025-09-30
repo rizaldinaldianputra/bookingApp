@@ -2,8 +2,8 @@ import CustomButton from '@/components/ui/button';
 import { postTicket } from '@/service/ticket_services';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,6 +19,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function TicketForm() {
+  const { userId } = useLocalSearchParams<{ userId: string }>();
+
   const insets = useSafeAreaInsets();
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
@@ -43,7 +45,7 @@ export default function TicketForm() {
     formData.append('title', title);
     formData.append('category', category);
     formData.append('description', description);
-    formData.append('user_id', '1');
+    formData.append('user_id', userId);
 
     if (image) {
       const fileName = image.split('/').pop() || 'photo.jpg';

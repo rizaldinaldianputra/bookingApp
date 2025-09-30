@@ -30,6 +30,11 @@
       "output": "static",
       "favicon": "./assets/images/logo.png"
     },
+    "splash": {
+      "image": "./assets/images/logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1B563A"
+    },
     "experiments": {
       "typedRoutes": true
     },

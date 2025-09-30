@@ -32,3 +32,9 @@ export const logout = async () => {
 
 export const register = (formData: FormData) =>
   postFormRequest<{ success: boolean; message: string; data: User }>('/api/register', formData);
+
+export const update = (formData: FormData) =>
+  postFormRequest<{ success: boolean; message: string; data: User }>(
+    '/api/account/update',
+    formData,
+  );

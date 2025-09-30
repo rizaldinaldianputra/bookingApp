@@ -6,7 +6,7 @@ import { formatDate } from '@/utils/date';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -117,7 +117,7 @@ export default function TicketList() {
     <View style={styles.row}>
       <Text style={styles.cell}>#{item.title}</Text>
       <Text style={styles.cell}>{formatDate(item.created_at)}</Text>
-      <Text style={styles.cell}>{item.admin_response}</Text>
+      <Text style={styles.cell}>{item.category}</Text>
       <TouchableOpacity
         style={styles.actionCell}
         onPress={() =>
@@ -205,7 +205,7 @@ export default function TicketList() {
         <View style={[styles.row, styles.header]}>
           <Text style={[styles.cell, styles.headerText]}>No Ticket</Text>
           <Text style={[styles.cell, styles.headerText]}>Date</Text>
-          <Text style={[styles.cell, styles.headerText]}>Kamar</Text>
+          <Text style={[styles.cell, styles.headerText]}>Kategori</Text>
           <Text style={[styles.cell, styles.headerText]}>Action</Text>
         </View>
         {/* FlatList needs flex: 1 to properly scroll within its parent */}
@@ -242,7 +242,12 @@ export default function TicketList() {
         </View>
         <View>
           <CustomButton
-            onPress={() => router.replace('/home/profile/ticket/ticket_submit')}
+            onPress={() =>
+              router.replace({
+                pathname: '/home/profile/ticket/ticket_submit',
+                params: { userId: user?.id?.toString() },
+              })
+            }
             title="Open Ticket"
           />
         </View>

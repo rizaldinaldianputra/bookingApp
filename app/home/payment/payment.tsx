@@ -8,11 +8,11 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Linking,
   Modal,
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -56,6 +56,18 @@ export default function PaymentScreen() {
       const response = await postTransaksi(bookingData);
       if (response.success) {
         setSuccessVisible(true);
+
+        // Nomor WhatsApp (format internasional tanpa tanda +)
+        const phoneNumber = '6231232131';
+        const message = encodeURIComponent('Halo, saya sudah melakukan pembayaran.'); // Pesan default
+        const url = `https://wa.me/${phoneNumber}?text=${message}`;
+
+        const supported = await Linking.canOpenURL(url);
+        if (supported) {
+          await Linking.openURL(url);
+        } else {
+          Alert.alert('Gagal membuka WhatsApp', 'Pastikan WhatsApp terinstal di perangkat Anda');
+        }
       } else {
         Alert.alert('Transaksi gagal', response.message);
       }
@@ -68,100 +80,77 @@ export default function PaymentScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Feather name="arrow-left" size={24} color="black" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Pembayaran</Text>
-        <View style={{ width: 24 }} />
-      </View>
-
-      <View style={styles.propertyCard}>
-        <Image
-          source={{
-            uri:
-              kosData.gallery && kosData.gallery.length > 0
-                ? BASE_URL + kosData.gallery[0].url
-                : 'https://via.placeholder.com/300',
-          }}
-          style={styles.propertyImage}
-        />
-        <View style={{ flex: 1, marginLeft: 10 }}>
-          <Text style={styles.propertyName}>{kosData.nama_kamar}</Text>
-          <Text style={styles.propertyAddress}>{kosData.kos.daerah}</Text>
-          <Text style={styles.propertyDate}>
-            {bookingData.start_order_date} - {bookingData.end_order_date}
-          </Text>
+    <View style={{ flex: 1, backgroundColor: '#fff' }}>
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 16, paddingBottom: 100 }}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Feather name="arrow-left" size={24} color="black" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Pembayaran</Text>
+          <View style={{ width: 24 }} />
         </View>
-      </View>
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Rincian Pembayaran</Text>
-        <View style={styles.row}>
-          <Text>Total</Text>
-          <Text style={styles.bold}>Rp{harga},-</Text>
-        </View>
-        <View style={styles.row}>
-          <Text>Fee</Text>
-          <Text style={styles.bold}>Rp10.000,-</Text>
-        </View>
-      </View>
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Pembayaran transfer</Text>
-        <View style={styles.bankCard}>
+        <View style={styles.propertyCard}>
           <Image
             source={{
-              uri: 'https://www.bca.co.id/-/media/Feature/Card/List-Card/Tentang-BCA/Brand-Assets/Logo-BCA/Logo-BCA_Biru.png',
+              uri:
+                kosData.gallery && kosData.gallery.length > 0
+                  ? BASE_URL + kosData.gallery[0].url
+                  : 'https://via.placeholder.com/300',
             }}
-            style={styles.bankLogo}
-            resizeMode="contain"
+            style={styles.propertyImage}
           />
-          <View>
-            <Text style={styles.bankName}>Bank Central Asia</Text>
-            <Text style={styles.bankNumber}>12345678 a/n Haven</Text>
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={styles.propertyName}>{kosData.nama_kamar}</Text>
+            <Text style={styles.propertyAddress}>{kosData.kos.daerah}</Text>
+            <Text style={styles.propertyDate}>
+              {bookingData.start_order_date} - {bookingData.end_order_date}
+            </Text>
           </View>
         </View>
-      </View>
 
-      <View style={styles.section}>
-        <Text>Upload Bukti Transfer</Text>
-        <TouchableOpacity style={styles.uploadBox} onPress={pickImage}>
-          {proofImage ? (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Rincian Pembayaran</Text>
+          <View style={styles.row}>
+            <Text>Total</Text>
+            <Text style={styles.bold}>Rp{harga},-</Text>
+          </View>
+          <View style={styles.row}>
+            <Text>Fee</Text>
+            <Text style={styles.bold}>Rp10.000,-</Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Pembayaran transfer</Text>
+          <View style={styles.bankCard}>
             <Image
-              source={{ uri: proofImage }}
-              style={{ width: '100%', height: 200, borderRadius: 8 }}
+              source={{
+                uri: 'https://www.bca.co.id/-/media/Feature/Card/List-Card/Tentang-BCA/Brand-Assets/Logo-BCA/Logo-BCA_Biru.png',
+              }}
+              style={styles.bankLogo}
+              resizeMode="contain"
             />
+            <View>
+              <Text style={styles.bankName}>Bank Central Asia</Text>
+              <Text style={styles.bankNumber}>12345678 a/n Haven</Text>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Tombol tetap di bawah layar */}
+      <View style={{ position: 'absolute', bottom: 20, left: 16, right: 16, paddingBottom: 20 }}>
+        <TouchableOpacity style={styles.button} onPress={handleSudahBayar} disabled={isLoading}>
+          {isLoading ? (
+            <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={{ color: '#999' }}>Browse a file ...</Text>
+            <Text style={styles.buttonText}>Sudah Bayar</Text>
           )}
         </TouchableOpacity>
-
-        <Text style={{ marginTop: 15 }}>Asal Bank</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Please type here ..."
-          value={asalBank}
-          onChangeText={setAsalBank}
-        />
-
-        <Text style={{ marginTop: 15 }}>Nama Pengirim</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Please type here ..."
-          value={namaPengirim}
-          onChangeText={setNamaPengirim}
-        />
       </View>
-
-      <TouchableOpacity style={styles.button} onPress={handleSudahBayar} disabled={isLoading}>
-        {isLoading ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={styles.buttonText}>Sudah Bayar</Text>
-        )}
-      </TouchableOpacity>
 
       <Modal
         visible={successVisible}
@@ -192,12 +181,11 @@ export default function PaymentScreen() {
           </View>
         </View>
       </Modal>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff', paddingHorizontal: 16 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -240,22 +228,11 @@ const styles = StyleSheet.create({
   bankName: { fontWeight: 'bold' },
   bankNumber: { color: '#333' },
 
-  uploadBox: {
-    backgroundColor: '#f2f2f2',
-    borderRadius: 8,
-    padding: 12,
-    marginTop: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 200,
-  },
-  input: { backgroundColor: '#f2f2f2', borderRadius: 8, padding: 12, marginTop: 8 },
   button: {
     backgroundColor: '#0B6E4F',
     padding: 15,
     borderRadius: 25,
     alignItems: 'center',
-    marginBottom: 100,
   },
   buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 

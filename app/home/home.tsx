@@ -9,6 +9,7 @@ import { router, useNavigation } from 'expo-router';
 import { useEffect, useState } from 'react';
 
 import { colors } from '@/constants/colors';
+import { BASE_URL } from '@/constants/config';
 import { useKosData } from '@/hooks/kossan';
 import { Fasilitas, Kamar } from '@/models/kossan';
 import {
@@ -75,7 +76,7 @@ const renderKosItem = ({ item }: { item: Kamar }) => {
           source={{
             uri:
               item.gallery && item.gallery.length > 0
-                ? item.gallery[0].url
+                ? BASE_URL + item.gallery[0].url
                 : 'https://picsum.photos/100',
           }}
           style={styles.kosImage}
@@ -112,10 +113,33 @@ const HomeScreen = () => {
   const { token } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [lokasi, setLokasi] = useState<Lokasi[]>([]);
-  const [isFilterModalVisible, setFilterModalVisible] = useState(false);
+  const [filterModalVisible, setFilterModalVisible] = useState(false);
+  // state untuk initial filters yang dikirim ke modal
+  const [initialFilters, setInitialFilters] = useState<FilterState>({
+    tipe: '',
+    daerah: '',
+    durasi: '',
+    jenis: '',
+    start_date: null,
+    end_date: null,
+  });
 
+  const openFilterModal = () => {
+    // Reset initial filters
+    setInitialFilters({
+      tipe: '',
+      daerah: '',
+      durasi: '',
+      jenis: '',
+      start_date: null,
+      end_date: null,
+    });
+
+    setFilterModalVisible(true);
+  };
   // Gunakan FilterState yang diimpor dari FilterModalComponent
   const [activeFilters, setActiveFilters] = useState<FilterState>({
+    tipe: '',
     daerah: '',
     durasi: '',
     jenis: '',
@@ -210,7 +234,9 @@ const HomeScreen = () => {
       <View style={{ height: 10 }} />
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Kamar Kos Terbaru</Text>
-        <Text style={styles.seeMore}>See more</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Kossan')}>
+          <Text style={styles.seeMore}>See more</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -227,10 +253,10 @@ const HomeScreen = () => {
 
       {/* Filter Modal yang baru */}
       <FilterModalComponent
-        isVisible={isFilterModalVisible}
+        isVisible={filterModalVisible}
         onClose={() => setFilterModalVisible(false)}
         onApplyFilter={handleApplyFilter}
-        initialFilters={activeFilters}
+        initialFilters={initialFilters} // kirim filter yang sudah di-reset
       />
     </>
   );

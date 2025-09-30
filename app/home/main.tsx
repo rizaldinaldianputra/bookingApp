@@ -23,7 +23,7 @@ export default function Main() {
         tabBarIcon: ({ color, size }) => {
           let iconName: string = 'home';
           if (route.name === 'Home') iconName = 'home';
-          else if (route.name === 'Kossan') iconName = 'home';
+          else if (route.name === 'Kossan') iconName = 'place';
           else if (route.name === 'Toko') iconName = 'store';
           else if (route.name === 'Account') iconName = 'person-outline';
 

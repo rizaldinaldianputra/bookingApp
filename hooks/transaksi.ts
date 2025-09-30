@@ -13,14 +13,30 @@ export const useTransaksi = (userId: string) => {
     try {
       const response = await getTransaksi(userId);
       if (response.success) {
-        // parsing fasilitas_ids yang awalnya string menjadi array
-        const parsedData = response.data.map((item) => ({
-          ...item,
-          kamar: {
-            ...item.kamar,
-            fasilitas_ids: JSON.parse(item.kamar.fasilitas_ids as unknown as string) as string[],
-          },
-        }));
+        const parsedData = response.data.map((item) => {
+          // Pastikan kamar ada
+          const kamar = item.kamar || {};
+
+          // Parsing fasilitas_ids dengan aman
+          let fasilitasArray: string[] = [];
+          if (kamar.fasilitas_ids) {
+            try {
+              fasilitasArray = Array.isArray(kamar.fasilitas_ids)
+                ? kamar.fasilitas_ids
+                : JSON.parse(kamar.fasilitas_ids);
+            } catch {
+              fasilitasArray = [];
+            }
+          }
+
+          return {
+            ...item,
+            kamar: {
+              ...kamar,
+              fasilitas_ids: fasilitasArray,
+            },
+          };
+        });
 
         setData(parsedData);
       } else {

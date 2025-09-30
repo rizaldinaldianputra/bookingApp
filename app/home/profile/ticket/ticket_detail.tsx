@@ -1,7 +1,6 @@
 import { BASE_URL } from '@/constants/config';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface TicketDetailProps {
@@ -91,7 +90,7 @@ export default function TicketDetail() {
 
           {ticket.image && (
             <Image
-              source={{ uri: BASE_URL + ` ${ticket.image}` }}
+              source={{ uri: BASE_URL + '/img/tickets/' + ticket.user_id + '/' + ticket.image }}
               style={styles.image}
               resizeMode="contain"
             />

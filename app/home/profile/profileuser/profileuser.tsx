@@ -1,10 +1,11 @@
 import CustomButton from '@/components/ui/button';
 import VerificationDialog from '@/components/ui/modal';
+import { BASE_URL } from '@/constants/config';
 import { User } from '@/models/user';
+import { update } from '@/service/auth_service';
 import { getUsers } from '@/service/user_service';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import moment from 'moment';
 import React, { useEffect, useState } from 'react';
 import {
   Alert,
@@ -24,25 +25,24 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 // ✅ AppBar Komponen Reusable
-const AppBar = ({ title }: { title: string }) => {
-  return (
-    <View style={appBarStyles.appBar}>
-      <TouchableOpacity onPress={() => router.back()} style={appBarStyles.backButton}>
-        <Icon name="arrow-left" size={24} color="#a4a4a4ff" />
-      </TouchableOpacity>
-      <Text style={appBarStyles.appBarTitle}>{title}</Text>
-      <View style={appBarStyles.rightPlaceholder} />
-    </View>
-  );
-};
+const AppBar = ({ title }: { title: string }) => (
+  <View style={appBarStyles.appBar}>
+    <TouchableOpacity onPress={() => router.back()} style={appBarStyles.backButton}>
+      <Icon name="arrow-left" size={24} color="#a4a4a4ff" />
+    </TouchableOpacity>
+    <Text style={appBarStyles.appBarTitle}>{title}</Text>
+    <View style={appBarStyles.rightPlaceholder} />
+  </View>
+);
 
 const EditProfileScreen = () => {
   const [fotoKtp, setFotoKtp] = useState<string | null>(null);
   const [fotoSelfie, setFotoSelfie] = useState<string | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [alamat, setAlamat] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
 
-  // ✅ State kalender
   const [dob, setDob] = useState<Date | null>(null);
   const [isDatePickerVisible, setDatePickerVisible] = useState(false);
 
@@ -53,6 +53,11 @@ const EditProfileScreen = () => {
       try {
         const data = await getUsers();
         setUser(data.user);
+        setAlamat(data.user.alamat || '');
+        if (data.user.gambarktp)
+          setFotoKtp(`${BASE_URL}/img/user/${data.user.id}/gambarktp/${data.user.gambarktp}`);
+        if (data.user.fotoselfie)
+          setFotoSelfie(`${BASE_URL}/img/user/${data.user.id}/fotoselfie/${data.user.fotoselfie}`);
       } catch (error) {
         console.error(error);
       }
@@ -70,12 +75,10 @@ const EditProfileScreen = () => {
       const result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        quality: 1,
+        quality: 0.2, // compress image sekitar 50%
       });
 
-      if (!result.canceled) {
-        setImage(result.assets[0].uri);
-      }
+      if (!result.canceled) setImage(result.assets[0].uri);
     } catch (error) {
       Alert.alert('Error', 'Gagal mengambil foto');
     }
@@ -84,6 +87,48 @@ const EditProfileScreen = () => {
   const handleConfirmDate = (date: Date) => {
     setDob(date);
     setDatePickerVisible(false);
+  };
+
+  const handleSubmit = async () => {
+    if (!user) return;
+    if (!alamat) {
+      Alert.alert('Peringatan', 'Alamat tidak boleh kosong');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('alamat', alamat);
+
+      if (fotoKtp && !fotoKtp.startsWith(BASE_URL)) {
+        const fileName = fotoKtp.split('/').pop() || 'gambarktp.jpg';
+        const fileType = fileName.split('.').pop() || 'jpg';
+        formData.append('gambarktp', {
+          uri: fotoKtp,
+          name: fileName,
+          type: `image/${fileType}`,
+        } as any);
+      }
+
+      if (fotoSelfie && !fotoSelfie.startsWith(BASE_URL)) {
+        const fileName = fotoSelfie.split('/').pop() || 'fotoselfie.jpg';
+        const fileType = fileName.split('.').pop() || 'jpg';
+        formData.append('fotoselfie', {
+          uri: fotoSelfie,
+          name: fileName,
+          type: `image/${fileType}`,
+        } as any);
+      }
+
+      const res = await update(formData);
+      Alert.alert('Berhasil', res.message, [{ text: 'OK', onPress: () => router.back() }]);
+    } catch (err: any) {
+      Alert.alert('Gagal', err.message || 'Terjadi kesalahan');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -116,22 +161,6 @@ const EditProfileScreen = () => {
               />
             </View>
 
-            {/* Tanggal Lahir */}
-            <View style={styles.inputGroup}>
-              <TouchableOpacity onPress={() => setDatePickerVisible(true)}>
-                <View pointerEvents="none">
-                  <TextInput
-                    style={styles.input}
-                    value={dob ? moment(dob).format('DD/MM/YYYY') : ''}
-                    editable={false}
-                    placeholder="Pilih tanggal lahir"
-                    placeholderTextColor="#888"
-                  />
-                </View>
-                <Icon name="calendar" size={20} color="#888" style={styles.inputIcon} />
-              </TouchableOpacity>
-            </View>
-
             {/* Nomor KTP */}
             <View style={styles.inputGroup}>
               <TextInput
@@ -151,12 +180,7 @@ const EditProfileScreen = () => {
               {fotoKtp && (
                 <Image
                   source={{ uri: fotoKtp }}
-                  style={{
-                    width: '100%',
-                    height: 200,
-                    marginTop: 10,
-                    borderRadius: 8,
-                  }}
+                  style={{ width: '100%', height: 200, marginTop: 10, borderRadius: 8 }}
                   resizeMode="cover"
                 />
               )}
@@ -174,12 +198,7 @@ const EditProfileScreen = () => {
               {fotoSelfie && (
                 <Image
                   source={{ uri: fotoSelfie }}
-                  style={{
-                    width: '100%',
-                    height: 200,
-                    marginTop: 10,
-                    borderRadius: 8,
-                  }}
+                  style={{ width: '100%', height: 200, marginTop: 10, borderRadius: 8 }}
                   resizeMode="cover"
                 />
               )}
@@ -189,8 +208,10 @@ const EditProfileScreen = () => {
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Alamat*</Text>
               <TextInput
+                value={alamat}
+                onChangeText={setAlamat}
                 style={[styles.input, styles.textArea]}
-                multiline={true}
+                multiline
                 numberOfLines={4}
                 placeholder="Masukkan alamat Anda"
                 placeholderTextColor="#888"
@@ -199,20 +220,23 @@ const EditProfileScreen = () => {
           </ScrollView>
 
           <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
-            <CustomButton onPress={() => setModalVisible(true)} title="Verifikasi Data" />
+            <CustomButton
+              onPress={handleSubmit}
+              title={loading ? 'Menyimpan...' : 'Verifikasi Data'}
+              disabled={loading}
+            />
           </View>
         </View>
       </KeyboardAvoidingView>
 
       <VerificationDialog visible={modalVisible} setVisible={setModalVisible} />
 
-      {/* ✅ Kalender Modal */}
       <DateTimePickerModal
         isVisible={isDatePickerVisible}
         mode="date"
         onConfirm={handleConfirmDate}
         onCancel={() => setDatePickerVisible(false)}
-        maximumDate={new Date()} // tidak bisa pilih tanggal di masa depan
+        maximumDate={new Date()}
       />
     </SafeAreaView>
   );

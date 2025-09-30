@@ -21,6 +21,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 export default function SignUpScreen() {
   const [nama, setNama] = useState<string>('');
   const [nik, setNik] = useState<string>('');
+  const [phone, setPhone] = useState<string>('');
+
   const [alamat, setAlamat] = useState<string>(''); // Menggunakan 'alamat' sesuai daftar field
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
@@ -36,7 +38,7 @@ export default function SignUpScreen() {
     setLoading(true);
 
     // Validasi sederhana sebelum mengirim
-    if (!nama || !nik || !alamat || !email || !password || !gambarktp || !fotoselfie) {
+    if (!nama || !nik || !alamat || !email || !password || !gambarktp || !fotoselfie || !phone) {
       Alert.alert('Peringatan', 'Harap lengkapi semua field dan unggah semua foto.');
       setLoading(false);
       return;
@@ -49,6 +51,7 @@ export default function SignUpScreen() {
     formData.append('status', 'active'); // Sesuaikan jika ada status lain atau jika ini adalah inputan user
     formData.append('email', email);
     formData.append('password', password);
+    formData.append('phone', phone);
 
     // Untuk gambarktp
     if (gambarktp) {
@@ -156,6 +159,13 @@ export default function SignUpScreen() {
         />
         <TextInput
           style={styles.input}
+          placeholder="Nomor Handphone"
+          value={phone}
+          onChangeText={setPhone}
+          keyboardType="numeric"
+        />
+        <TextInput
+          style={styles.input}
           placeholder="Alamat Lengkap"
           value={alamat}
           onChangeText={setAlamat}
@@ -170,12 +180,12 @@ export default function SignUpScreen() {
           keyboardType="email-address"
           autoCapitalize="none"
         />
+
         <TextInput
           style={styles.input}
           placeholder="Password"
           value={password}
           onChangeText={setPassword}
-          secureTextEntry
         />
 
         <Text style={styles.sectionTitle}>Upload Foto</Text>

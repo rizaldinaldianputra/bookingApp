@@ -18,9 +18,10 @@ const PaymentScreen = () => {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
+  const [paying, setPaying] = useState(false);
   const { payload } = useLocalSearchParams();
   const transaksi = payload ? JSON.parse(payload as string) : null;
-  const merchantRef = generateMerchantRef(); // Call the function here
+  const merchantRef = generateMerchantRef();
 
   useEffect(() => {
     (async () => {
@@ -28,7 +29,7 @@ const PaymentScreen = () => {
         const res: PaymentMethodResponse = await getPaymentMethods();
         setPaymentMethods(res.data);
         if (res.data.length > 0) {
-          setSelectedMethod(res.data[0]); // simpan object pertama
+          setSelectedMethod(res.data[0]);
         }
       } catch (err) {
         console.error('Gagal load metode pembayaran', err);
@@ -131,12 +132,14 @@ const PaymentScreen = () => {
         </ScrollView>
       )}
       <View style={styles.bottomButtons}>
-        <TouchableOpacity style={styles.cancelButton}>
+        <TouchableOpacity onPress={() => router.replace('/home/main')} style={styles.cancelButton}>
           <Text style={styles.cancelText}>Cancel</Text>
         </TouchableOpacity>
         <TouchableOpacity
+          disabled={paying}
           onPress={async function () {
             if (!selectedMethod) return;
+            setPaying(true);
             const payload = {
               method: selectedMethod.code,
               customerName: transaksi.nama_user,
@@ -154,7 +157,6 @@ const PaymentScreen = () => {
               expiryHours: 24,
             };
 
-            // 🔥 log payload & url
             console.log('📦 PAYLOAD:', JSON.stringify(payload, null, 2));
 
             try {
@@ -167,11 +169,13 @@ const PaymentScreen = () => {
             } catch (err: any) {
               const message = err.response?.data?.message || err.message;
               console.error(message);
+            } finally {
+              setPaying(false);
             }
           }}
-          style={styles.payButton}
+          style={[styles.payButton, paying && { opacity: 0.7 }]}
         >
-          <Text style={styles.payText}>Bayar</Text>
+          {paying ? <ActivityIndicator color="#fff" /> : <Text style={styles.payText}>Bayar</Text>}
         </TouchableOpacity>
       </View>
     </View>
@@ -316,6 +320,5 @@ const styles = StyleSheet.create({
 });
 
 function generateMerchantRef(): string {
-  // Generate a unique reference, e.g., using a timestamp
   return `ORDER-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 }

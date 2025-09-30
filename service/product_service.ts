@@ -9,7 +9,11 @@ export const getTransaksiProduct = (userId: string) =>
 
 // src/service/product_service.ts
 
-export const getProduct = () => getRequest<KatalogProductResponse>('/api/getProduk');
+export const getProduct = (search?: string) =>
+  getRequest<KatalogProductResponse>(
+    '/api/getProduk' + (search ? `?search=${encodeURIComponent(search)}` : ''),
+  );
+
 export const getProductById = (id: string) =>
   getRequest<KatalogProductByIdResponse>(`/api/Produk/${id}`);
 

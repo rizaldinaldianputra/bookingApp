@@ -87,7 +87,7 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.rizaldinp.bookingApp"
+    namespace 'com.rizaldinp.bookingApp'
     defaultConfig {
         applicationId 'com.rizaldinp.bookingApp'
         minSdkVersion rootProject.ext.minSdkVersion

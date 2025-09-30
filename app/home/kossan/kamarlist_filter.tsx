@@ -19,6 +19,7 @@ const KamarListFilter = () => {
 
   const filterParams = useMemo(() => {
     const temp = {
+      tipe: Array.isArray(params.tipe) ? params.tipe[0] : params.tipe || '',
       daerah: Array.isArray(params.daerah) ? params.daerah[0] : params.daerah || '',
       durasi: Array.isArray(params.durasi) ? params.durasi[0] : params.durasi || '',
       jenis: Array.isArray(params.jenis) ? params.jenis[0] : params.jenis || '',

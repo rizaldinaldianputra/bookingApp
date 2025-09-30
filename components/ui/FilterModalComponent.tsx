@@ -1,7 +1,10 @@
+// FilterModalComponent.tsx
 import { colors } from '@/constants/colors';
 import { Fasilitas, FasilitasResponse } from '@/models/fasilistas';
 import { Lokasi, LokasiResponse } from '@/models/lokasi';
+import { Room, RoomResponse } from '@/models/typekos';
 import { getFasilitas } from '@/service/fasilitas_service';
+import { getTipekos } from '@/service/kossan_service';
 import { getLokasi } from '@/service/lokasi_service';
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -18,6 +21,7 @@ import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 export interface FilterState {
+  tipe: string;
   daerah: string;
   durasi: string;
   jenis: string;
@@ -38,70 +42,80 @@ const FilterModalComponent = ({
   isVisible,
   onClose,
   onApplyFilter,
-  initialFilters = { daerah: '', durasi: '', jenis: '', start_date: null, end_date: null },
+  initialFilters = {
+    daerah: '',
+    durasi: '',
+    jenis: '',
+    start_date: null,
+    end_date: null,
+    tipe: '',
+  },
 }: FilterModalProps) => {
   const [lokasi, setLokasi] = useState<Lokasi[]>([]);
   const [fasilitas, setFasilitas] = useState<Fasilitas[]>([]);
-  const [selectedLocation, setSelectedLocation] = useState(initialFilters?.daerah || '');
-  const [selectedDurasi, setSelectedDurasi] = useState(initialFilters?.durasi || '');
-  const [selectedJenis, setSelectedJenis] = useState(initialFilters?.jenis || '');
-  const [start_date, setstart_date] = useState<string | null>(initialFilters?.start_date || null);
-  const [end_date, setend_date] = useState<string | null>(initialFilters?.end_date || null);
+  const [typeKos, setTypeKos] = useState<Room[]>([]);
+
+  const [selectedTypeKos, setSelectedTypeKos] = useState('');
+  const [selectedLocation, setSelectedLocation] = useState('');
+  const [selectedDurasi, setSelectedDurasi] = useState('');
+  const [selectedJenis, setSelectedJenis] = useState('');
+  const [start_date, setstart_date] = useState<string | null>(null);
+  const [end_date, setend_date] = useState<string | null>(null);
 
   const [isCheckInPickerVisible, setIsCheckInPickerVisible] = useState(false);
   const [isCheckOutPickerVisible, setIsCheckOutPickerVisible] = useState(false);
 
   useEffect(() => {
     if (isVisible) {
+      // reset filter saat modal dibuka
+      setSelectedTypeKos(initialFilters?.tipe || '');
       setSelectedLocation(initialFilters?.daerah || '');
       setSelectedDurasi(initialFilters?.durasi || '');
       setSelectedJenis(initialFilters?.jenis || '');
       setstart_date(initialFilters?.start_date || null);
       setend_date(initialFilters?.end_date || null);
+
+      const fetchData = async () => {
+        try {
+          const lokasiData: LokasiResponse = await getLokasi();
+          setLokasi(lokasiData.data);
+
+          const fasilitasData: FasilitasResponse = await getFasilitas();
+          setFasilitas(fasilitasData.data);
+
+          const typeKosData: RoomResponse = await getTipekos();
+          setTypeKos(typeKosData.data);
+        } catch (error) {
+          console.error('Failed to fetch filter data:', error);
+        }
+      };
+      fetchData();
     }
-
-    const fetchData = async () => {
-      try {
-        const lokasiData: LokasiResponse = await getLokasi();
-        setLokasi(lokasiData.data);
-
-        const fasilitasData: FasilitasResponse = await getFasilitas();
-        setFasilitas(fasilitasData.data);
-      } catch (error) {
-        console.error('Failed to fetch filter data:', error);
-      }
-    };
-    fetchData();
   }, [initialFilters, isVisible]);
-
-  const handleReset = () => {
-    setSelectedLocation('');
-    setSelectedDurasi('');
-    setSelectedJenis('');
-    setstart_date(null);
-    setend_date(null);
-  };
 
   const handleApply = () => {
     const filterData: FilterState = {
+      tipe: selectedTypeKos,
       daerah: selectedLocation,
       durasi: selectedDurasi,
       jenis: selectedJenis,
-      start_date,
-      end_date,
+      start_date: start_date || '',
+      end_date: end_date || '',
     };
 
     onApplyFilter(filterData);
 
-    // Hanya kirim yang punya value valid (tidak null/undefined/kosong)
+    // Hanya sertakan field yang punya value (bukan kosong)
     const filteredParams: Record<string, string> = {};
     Object.entries(filterData).forEach(([key, value]) => {
-      if (value != null && String(value).trim() !== '') {
-        filteredParams[key] = String(value);
+      if (value.trim() !== '') {
+        // skip string kosong
+        filteredParams[key] = value;
       }
     });
 
     const queryString = new URLSearchParams(filteredParams).toString();
+    console.log('Filtered URL:', `/home/kossan/kamarlist_filter?${queryString}`);
     router.push(`/home/kossan/kamarlist_filter?${queryString}`);
     onClose();
   };
@@ -111,7 +125,6 @@ const FilterModalComponent = ({
   const handleConfirmCheckIn = (date: Date) => {
     const selected = date.toISOString().split('T')[0];
     setstart_date(selected);
-    // jika end_date < start_date, otomatis set end_date = start_date
     if (!end_date || new Date(end_date) < date) setend_date(selected);
     setIsCheckInPickerVisible(false);
   };
@@ -125,13 +138,26 @@ const FilterModalComponent = ({
   const hideCheckOutPicker = () => setIsCheckOutPickerVisible(false);
 
   const durasiOptions = ['Perharian', 'Perbulan', 'Pertigabulan', 'Perenambulan', 'Pertahun'];
+  const toggleSelection = (current: string, value: string) => (current === value ? '' : value);
 
   return (
     <Modal animationType="slide" transparent={true} visible={isVisible} onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
           <ScrollView contentContainerStyle={{ paddingVertical: 10 }}>
-            <Text style={styles.modalTitle}>Filter</Text>
+            <View
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                paddingHorizontal: 15,
+              }}
+            >
+              <Text style={styles.modalTitle}></Text>
+              <Text style={styles.modalTitle}>Filter</Text>
+              <TouchableOpacity onPress={onClose}>
+                <Icon name="close" size={24} color="#ff0318ff" />
+              </TouchableOpacity>
+            </View>
 
             <DateTimePickerModal
               isVisible={isCheckInPickerVisible}
@@ -151,13 +177,33 @@ const FilterModalComponent = ({
               date={end_date ? new Date(end_date) : start_date ? new Date(start_date) : today}
             />
 
+            <Text style={styles.filterSectionTitle}>Type Kos</Text>
+            <View style={styles.filterChipContainer}>
+              {typeKos.map((tk) => (
+                <TouchableOpacity
+                  key={tk.id}
+                  style={[styles.chip, selectedTypeKos === tk.nama && styles.chipSelected]}
+                  onPress={() => setSelectedTypeKos(toggleSelection(selectedTypeKos, tk.nama))}
+                >
+                  <Text
+                    style={[
+                      styles.chipText,
+                      selectedTypeKos === tk.nama && styles.chipTextSelected,
+                    ]}
+                  >
+                    {tk.nama}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
             <Text style={styles.filterSectionTitle}>Lokasi</Text>
             <View style={styles.filterChipContainer}>
               {lokasi.map((loc) => (
                 <TouchableOpacity
                   key={loc.id}
                   style={[styles.chip, selectedLocation === loc.nama && styles.chipSelected]}
-                  onPress={() => setSelectedLocation(loc.nama)}
+                  onPress={() => setSelectedLocation(toggleSelection(selectedLocation, loc.nama))}
                 >
                   <Text
                     style={[
@@ -177,7 +223,7 @@ const FilterModalComponent = ({
                 <TouchableOpacity
                   key={durasi}
                   style={[styles.chip, selectedDurasi === durasi && styles.chipSelected]}
-                  onPress={() => setSelectedDurasi(durasi)}
+                  onPress={() => setSelectedDurasi(toggleSelection(selectedDurasi, durasi))}
                 >
                   <Text
                     style={[styles.chipText, selectedDurasi === durasi && styles.chipTextSelected]}
@@ -190,11 +236,11 @@ const FilterModalComponent = ({
 
             <Text style={styles.filterSectionTitle}>Jenis</Text>
             <View style={styles.filterChipContainer}>
-              {['Pria', 'Wanita', 'Campur'].map((jenis) => (
+              {['Putra', 'Putri', 'Campur'].map((jenis) => (
                 <TouchableOpacity
                   key={jenis}
                   style={[styles.chip, selectedJenis === jenis && styles.chipSelected]}
-                  onPress={() => setSelectedJenis(jenis)}
+                  onPress={() => setSelectedJenis(toggleSelection(selectedJenis, jenis))}
                 >
                   <Text
                     style={[styles.chipText, selectedJenis === jenis && styles.chipTextSelected]}
@@ -239,12 +285,10 @@ const FilterModalComponent = ({
                 </Text>
               </TouchableOpacity>
             </View>
+            <View style={{ height: 50 }} />
           </ScrollView>
 
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.resetButton} onPress={handleReset}>
-              <Text style={styles.resetButtonText}>Reset</Text>
-            </TouchableOpacity>
             <TouchableOpacity style={styles.applyButton} onPress={handleApply}>
               <Text style={styles.applyButtonText}>Apply Filter</Text>
             </TouchableOpacity>
@@ -314,20 +358,9 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    padding: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
   },
-  resetButton: {
-    flex: 1,
-    backgroundColor: '#D1FAE5',
-    borderRadius: 60,
-    padding: 15,
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  resetButtonText: { color: '#065F46', fontWeight: 'bold' },
   applyButton: {
     flex: 1,
     backgroundColor: '#065F46',
